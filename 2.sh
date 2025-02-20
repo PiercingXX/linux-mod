@@ -224,3 +224,5 @@ dconf write /org/gnome/shell/extensions/forge/move-pointer-focus-enabled 'true'
   '1740018466910'
 
 
+/org/gnome/shell/extensions/forge/keybindings/prefs-open
+  @as []
