@@ -43,9 +43,9 @@ echo "Installing Programs and Drivers"
 dnf install kitty -y
 dnf install dconf* -y
 dnf install pipx -y
+dnf install typescript -y
 dnf install gnome-tweaks -y
 dnf install papirus-icon-theme -y
-wait
 pipx install gnome-extensions-cli --system-site-packages
 flatpak install flathub com.mattjakeman.ExtensionManager -y
 flatpak install flathub md.obsidian.Obsidian -y
@@ -88,7 +88,7 @@ chown -R "$username":"$username" /home/"$username"/.fonts
 
 dnf install fontawesome-fonts -y 
 dnf install google-noto-emoji-color-fonts -y
-sudo yum install curl cabextract xorg-x11-font-utils fontconfig
+sudo yum install curl cabextract xorg-x11-font-utils fontconfig -y
 sudo rpm -i https://downloads.sourceforge.net/project/mscorefonts2/rpms/msttcore-fonts-installer-2.6-1.noarch.rpm
 
 # Reloading Font
@@ -125,7 +125,6 @@ chmod -R u+x gnome-shell-extensions-useless-gaps
 cd gnome-shell-extensions-useless-gaps || exit
 ./install.sh local-install
 # Space Bar
-dnf install typescript -y
 git clone https://github.com/christopher-l/space-bar.git
 chmod -R u+x space-bar
 cd space-bar
@@ -133,34 +132,11 @@ cd space-bar
 ./scripts/build.sh -i
 
 
-
-
-# Used for fstab
-mkdir -p /media/Working-Storage
-mkdir -p /media/Archived-Storage
-chown "$username":"$username" /home/"$username"/media/Archived-Storage
-chown "$username":"$username" /home/"$username"/media/Working-Storage
-
-
-
 sudo dnf update && upgrade -y
-wait
-dnf full-upgrade -y
-wait
-dnf install -f
-wait
-dpkg --configure -a
-dnf install --fix-broken
 wait
 dnf autoremove -y
-sudo dnf update && upgrade -y
-wait
 flatpak update -y
-
-
 
 
 read -r -p "2.sh complete. Press enter to reboot"
 sudo reboot
-
-
