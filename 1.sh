@@ -45,7 +45,6 @@ dnf install kitty -y
 dnf install dconf* -y
 dnf install pipx -y
 dnf install gnome-tweaks -y
-dnf install gnome-shell-extension-manager -y
 dnf install papirus-icon-theme -y
 wait
 pipx install gnome-extensions-cli --system-site-packages
@@ -57,46 +56,17 @@ pipx install gnome-extensions-cli --system-site-packages
 # Installing important things && stuff && some dependencies
 echo "Installing Programs and Drivers"
 sleep 2
-dnf install dbus-x11 -y
-dnf install cups -y
-dnf install util-linux -y
-dnf install xdg-utils -y
-dnf install libnvidia-egl-wayland -y
-dnf install build-essential -y
-dnf install nautilus -y
-dnf install gdebi -y
-dnf install fuse -y
-dnf install libfuse2 -y
-dnf install x11-xserver-utils -y
-dnf install dh-dkms -y
-dnf install devscripts -y
-dnf install fonts-noto-color-emoji -y
-dnf install zip unzip gzip tar -y
-dnf install make -y
-dnf install linux-headers-generic -y
-dnf install seahorse -y
-dnf install gnome-calculator -y
-dnf install rename -y
-dnf install neofetch -y
-dnf install mpv -y
-dnf install gparted -y
-dnf install curl -y
-dnf install gh -y
-dnf install lua5.4 -y
-dnf install gnome-disk-utility -y
-sleep 2
-flatpak install flathub net.waterfox.waterfox -y
+flatpak install flathub com.mattjakeman.ExtensionManager -y
 flatpak install flathub md.obsidian.Obsidian -y
 flatpak install flathub org.libreoffice.LibreOffice -y
 flatpak install https://flathub.org/beta-repo/appstream/org.gimp.GIMP.flatpakref -y
 flatpak install flathub org.gnome.SimpleScan -y
 flatpak install flathub org.blender.Blender -y
-#flatpak install flathub com.usebottles.bottles -y
-#flatpak install flathub com.github.tchx84.Flatseal -y
-flatpak install flathub com.mattjakeman.ExtensionManager -y
 flatpak install flathub org.qbittorrent.qBittorrent -y
 flatpak install flathub io.missioncenter.MissionCenter -y
 flatpak install flathub com.tomjwatson.Emote -y
+flatpak install flathub com.visualstudio.code -y
+flatpak install flathub com.synology.SynologyDrive -y
 
 # Gimp dotfiles
 git clone https://github.com/Piercingxx/gimp-dots.git
@@ -108,39 +78,6 @@ rm -rf /home/"$username"/.config/GIMP/*
 cd gimp-dots/Gimp || exit
 cp -R "3.0" /home/"$username"/.config/GIMP/
 cd "$builddir" || exit
-
-# VSCode
-wget "https://vscode.download.prss.microsoft.com/dbazure/download/stable/e170252f762678dec6ca2cc69aba1570769a5d39/code_1.88.1-1712771838_amd64.deb"
-wait
-dpkg -i code_1.88.1-1712771838_amd64.deb
-wait
-rm code_1.88.1-1712771838_amd64.deb
-
-# Synology Drive
-wget "https://global.download.synology.com/download/Utility/SynologyDriveClient/3.4.0-15724/Ubuntu/Installer/synology-drive-client-15724.x86_64.deb"
-wait
-sudo dpkg -i synology-drive-client-15724.x86_64.deb
-wait
-
-# Synology Chat
-wget "https://global.synologydownload.com/download/Utility/ChatClient/1.2.2-0222/Ubuntu/x86_64/Synology%20Chat%20Client-1.2.2-0222.deb"
-wait
-sudo dpkg --force-all -i Synology%20Chat%20Client-1.2.2-0222.deb
-wait
-
-# steam
-wget "https://steamcdn-a.akamaihd.net/client/installer/steam.deb"
-wait
-sudo dpkg -i steam.deb
-wait
-rm steam.deb
-# i386 is needed for steam to launch
-sudo dpkg --add-architecture i386
-
-# FlashForge
-# wget "https://en.fss.flashforge.com/10000/software/e02d016281d06012ea71a671d1e1fdb7.deb"
-# chown "$username":"$username" e02d016281d06012ea71a671d1e1fdb7.deb
-
 
 
 
@@ -172,6 +109,10 @@ sleep 2
 dnf install gnome-shell-extension-appindicator -y
 dnf install gnome-shell-extension-gsconnect -y
 dnf install gnome-shell-extension-caffeine -y
+dnf install gnome-shell-extension-blur-my-shell -y
+dnf install gnome-shell-extension-forge -y
+dnf install gnome-shell-extension-just-perfection -y
+dnf install gnome-shell-extension-workspace-indicator -y
 # App Icons Taskbar
 wget https://gitlab.com/AndrewZaech/aztaskbar/-/archive/main/aztaskbar-main.tar
 gnome-extensions install aztaskbar-main.tar
@@ -187,22 +128,7 @@ git clone https://github.com/mipmip/gnome-shell-extensions-useless-gaps.git
 chmod -R u+x nome-shell-extensions-useless-gaps
 cd gnome-shell-extensions-useless-gaps || exit
 ./install.sh local-install
-# Just Perfection
-# Blur My Shell
 
-
-#Nautilus Customization
-dnf install gnome-sushi -y
-dnf install imagemagick nautilus-image-converter -y
-dnf install nautilus-admin -y
-dnf install gir1.2-gtk-4.0 -y
-git clone https://github.com/Stunkymonkey/nautilus-open-any-terminal.git
-cd nautilus-open-any-terminal || exit
-make
-sudo make install schema
-glib-compile-schemas /usr/share/glib-2.0/schemas
-cd "$builddir" || exit
-rm -rf nautilus-open-any-terminal
 
 
 # Removing zip files and stuff
