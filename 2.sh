@@ -89,140 +89,29 @@ dconf write /org/gnome/desktop/interface/icon-theme 'Papirus'
 dconf write /org/gnome/shell/extensions/forge/move-pointer-focus-enabled 'true'
 
 
-/org/gnome/shell/extensions/space-bar/shortcuts/open-menu
-  @as []
-
-/org/gnome/shell/extensions/space-bar/shortcuts/enable-move-to-workspace-shortcuts
-  true
-
-/org/gnome/desktop/wm/keybindings/move-to-workspace-1
-  ['<Super><Shift>1']
-
-/org/gnome/desktop/wm/keybindings/move-to-workspace-10
-  ['<Super><Shift>0']
-/org/gnome/desktop/wm/keybindings/move-to-workspace-2
-  ['<Super><Shift>2']
-/org/gnome/desktop/wm/keybindings/move-to-workspace-3
-  ['<Super><Shift>3']
-/org/gnome/desktop/wm/keybindings/move-to-workspace-4
-  ['<Super><Shift>4']
-/org/gnome/desktop/wm/keybindings/move-to-workspace-5
-  ['<Super><Shift>5']
-/org/gnome/desktop/wm/keybindings/move-to-workspace-6
-  ['<Super><Shift>6']
-/org/gnome/desktop/wm/keybindings/move-to-workspace-7
-  ['<Super><Shift>7']
-/org/gnome/desktop/wm/keybindings/move-to-workspace-8
-  ['<Super><Shift>8']
-/org/gnome/desktop/wm/keybindings/move-to-workspace-9
-  ['<Super><Shift>9']
-
-/org/gnome/shell/extensions/space-bar/behavior/show-empty-workspaces
-  false
-  /org/gnome/shell/extensions/space-bar/behavior/toggle-overview
-  false
-
-  
-/org/gnome/shell/extensions/forge/stacked-tiling-mode-enabled
-  false
-
-/org/gnome/shell/extensions/forge/tabbed-tiling-mode-enabled
-  false
-
-/org/gnome/shell/extensions/forge/preview-hint-enabled
-  false
-
-
-  /org/gnome/shell/extensions/forge/window-gap-size
-  uint32 7
+dconf write /org/gnome/shell/extensions/space-bar/shortcuts/open-menu "@as []"
 
 
 
-/org/gtk/gtk4/settings/color-chooser/selected-color
-  (true, 1.0, 1.0, 1.0, 1.0)
 
-/org/gtk/gtk4/settings/color-chooser/custom-colors
-  [(0.92549020051956177, 0.36862745881080627, 0.36862745881080627, 1.0)]
-/org/gtk/gtk4/settings/color-chooser/selected-color
-  (true, 0.92549020051956177, 0.36862745881080627, 0.36862745881080627, 1.0)
-
-/org/gtk/gtk4/settings/color-chooser/selected-color
-  (true, 1.0, 1.0, 1.0, 1.0)
-
-/org/gnome/shell/extensions/forge/css-updated
-  '1740018402267'
-
-/org/gnome/shell/extensions/forge/css-updated
-  '1740018402273'
-
-/org/gnome/shell/extensions/forge/css-updated
-  '1740018406352'
-
-/org/gtk/gtk4/settings/color-chooser/custom-colors
-  [(0.066666670143604279, 0.78039216995239258, 0.87843137979507446, 1.0), (0.92549020051956177, 0.36862745881080627, 0.36862745881080627, 1.0)]
-/org/gtk/gtk4/settings/color-chooser/selected-color
-  (true, 0.066666670143604279, 0.78039216995239258, 0.87843137979507446, 1.0)
-
-/org/gtk/gtk4/settings/color-chooser/selected-color
-  (true, 1.0, 1.0, 1.0, 1.0)
-
-/org/gnome/shell/extensions/forge/css-updated
-  '1740018418899'
-
-/org/gnome/shell/extensions/forge/css-updated
-  '1740018418906'
-
-/org/gnome/shell/extensions/forge/css-updated
-  '1740018418912'
-
-/org/gnome/shell/extensions/forge/css-updated
-  '1740018420643'
-
-/org/gtk/gtk4/settings/color-chooser/custom-colors
-  [(0.9686274528503418, 0.63529413938522339, 0.16862745583057404, 1.0), (0.066666670143604279, 0.78039216995239258, 0.87843137979507446, 1.0), (0.92549020051956177, 0.36862745881080627, 0.36862745881080627, 1.0)]
-/org/gtk/gtk4/settings/color-chooser/selected-color
-  (true, 0.9686274528503418, 0.63529413938522339, 0.16862745583057404, 1.0)
-
-/org/gtk/gtk4/settings/color-chooser/selected-color
-  (true, 1.0, 1.0, 1.0, 1.0)
-
-/org/gnome/shell/extensions/forge/css-updated
-  '1740018423629'
-
-/org/gnome/shell/extensions/forge/css-updated
-  '1740018423636'
-
-/org/gnome/shell/extensions/forge/css-updated
-  '1740018425890'
-
-/org/gtk/gtk4/settings/color-chooser/custom-colors
-  [(0.70588237047195435, 0.65490198135375977, 0.83921569585800171, 1.0), (0.9686274528503418, 0.63529413938522339, 0.16862745583057404, 1.0), (0.066666670143604279, 0.78039216995239258, 0.87843137979507446, 1.0), (0.92549020051956177, 0.36862745881080627, 0.36862745881080627, 1.0)]
-/org/gtk/gtk4/settings/color-chooser/selected-color
-  (true, 0.70588237047195435, 0.65490198135375977, 0.83921569585800171, 1.0)
-
-/org/gtk/gtk4/settings/color-chooser/selected-color
-  (true, 1.0, 1.0, 1.0, 1.0)
-
-/org/gnome/shell/extensions/forge/css-updated
-  '1740018430865'
-
-/org/gnome/shell/extensions/forge/css-updated
-  '1740018433128'
-
-/org/gtk/gtk4/settings/color-chooser/custom-colors
-  [(1.0, 0.96470588445663452, 0.42352941632270813, 1.0), (0.70588237047195435, 0.65490198135375977, 0.83921569585800171, 1.0), (0.9686274528503418, 0.63529413938522339, 0.16862745583057404, 1.0), (0.066666670143604279, 0.78039216995239258, 0.87843137979507446, 1.0), (0.92549020051956177, 0.36862745881080627, 0.36862745881080627, 1.0)]
-/org/gtk/gtk4/settings/color-chooser/selected-color
-  (true, 1.0, 0.96470588445663452, 0.42352941632270813, 1.0)
-
-/org/gtk/gtk4/settings/color-chooser/selected-color
-  (true, 1.0, 1.0, 1.0, 1.0)
-
-/org/gnome/shell/extensions/forge/css-updated
-  '1740018465757'
-
-/org/gnome/shell/extensions/forge/css-updated
-  '1740018466910'
+dconf write /org/gnome/shell/extensions/space-bar/shortcuts/enable-move-to-workspace-shortcuts 'true'
+dconf write /org/gnome/desktop/wm/keybindings/move-to-workspace-1 "'<Super><Shift>1'"
+dconf write /org/gnome/desktop/wm/keybindings/move-to-workspace-10 "'<Super><Shift>0'"
+dconf write /org/gnome/desktop/wm/keybindings/move-to-workspace-2 "'<Super><Shift>2'"
+dconf write /org/gnome/desktop/wm/keybindings/move-to-workspace-3 "'<Super><Shift>3'"
+dconf write /org/gnome/desktop/wm/keybindings/move-to-workspace-4 "'<Super><Shift>4'"
+dconf write /org/gnome/desktop/wm/keybindings/move-to-workspace-5 "'<Super><Shift>5'"
+dconf write /org/gnome/desktop/wm/keybindings/move-to-workspace-6 "'<Super><Shift>6'"
+dconf write /org/gnome/desktop/wm/keybindings/move-to-workspace-7 "'<Super><Shift>7'"
+dconf write /org/gnome/desktop/wm/keybindings/move-to-workspace-8 "'<Super><Shift>8'"
+dconf write /org/gnome/desktop/wm/keybindings/move-to-workspace-9 "'<Super><Shift>9'"
 
 
-/org/gnome/shell/extensions/forge/keybindings/prefs-open
-  @as []
+dconf write /org/gnome/shell/extensions/space-bar/behavior/show-empty-workspaces 'false'
+dconf write /org/gnome/shell/extensions/space-bar/behavior/toggle-overview 'false'
+dconf write /org/gnome/shell/extensions/forge/stacked-tiling-mode-enabled 'false'
+dconf write /org/gnome/shell/extensions/forge/tabbed-tiling-mode-enabled 'false'
+dconf write /org/gnome/shell/extensions/forge/preview-hint-enabled 'false'
+dconf write /org/gnome/shell/extensions/forge/window-gap-size 'uint32 7'
+dconf write /org/gtk/gtk4/settings/color-chooser/selected-color "true, 1.0, 1.0, 1.0, 1.0"
+dconf write /org/gnome/shell/extensions/forge/keybindings/prefs-open "@as []"
