@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# https://github.com/Piercing666
+# https://github.com/Piercingxx
 
 # Check if Script is Run as Root
 if [[ $EUID -ne 0 ]]; then

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# https://github.com/Piercing666
+# https://github.com/Piercingxx
 
 username=$(id -u -n 1000)
 

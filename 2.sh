@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# https://github.com/Piercing666
+# https://github.com/Piercingxx
 
 # Check if running as root. If root, script will exit
 if [[ $EUID -eq 0 ]]; then
