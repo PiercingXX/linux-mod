@@ -55,6 +55,8 @@ gnome-extensions enable aztaskbar@aztaskbar.gitlab.com && echo "AzTaskbar: Enabl
 gnome-extensions enable blur-my-shell@aunetx && echo "Blur My Shell: Enabled"
 gnome-extensions enable caffeine@patapon.info && echo "Caffeine: Enabled"
 gnome-extensions enable just-perfection-desktop@just-perfection && echo "Just Perfection: Enabled"
+gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com
+gnome-extensions enable forge@jmmaranan.com
 dconf write /org/gnome/shell/extensions/just-perfection/dash-icon-size "48" && echo "Just Perfection Dash Icon Size: 48"
 dconf write /org/gnome/shell/extensions/just-perfection/animation "3" && echo "Just Perfection Animation: 3"
 dconf write /org/gnome/shell/extensions/just-perfection/startup-status "0" && echo "Just Perfection Startup Status: 0"
@@ -83,6 +85,11 @@ dconf write /org/gnome/desktop/privacy/report-technical-problems 'false'
 
 gnome-extensions disable background-logo@fedorahosted.org 
 
-sleep 2
+dconf write /org/gnome/desktop/wm/preferences/focus-mode 'mouse'
+dconf write /org/gnome/desktop/peripherals/touchpad/accel-profile 'flat'
+dconf write /org/gnome/desktop/interface/icon-theme 'Papirus'
+
+
+
 
 
