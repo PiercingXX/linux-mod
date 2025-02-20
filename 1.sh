@@ -109,7 +109,6 @@ dnf install gnome-shell-extension-caffeine -y
 dnf install gnome-shell-extension-blur-my-shell -y
 dnf install gnome-shell-extension-forge -y
 dnf install gnome-shell-extension-just-perfection -y
-dnf install gnome-shell-extension-workspace-indicator -y
 # App Icons Taskbar
 wget https://gitlab.com/AndrewZaech/aztaskbar/-/archive/main/aztaskbar-main.tar
 gnome-extensions install aztaskbar-main.tar
@@ -125,6 +124,14 @@ git clone https://github.com/mipmip/gnome-shell-extensions-useless-gaps.git
 chmod -R u+x gnome-shell-extensions-useless-gaps
 cd gnome-shell-extensions-useless-gaps || exit
 ./install.sh local-install
+# Space Bar
+dnf install typescript -y
+git clone https://github.com/christopher-l/space-bar.git
+chmod -R u+x space-bar
+cd space-bar
+./scripts/build.sh
+./scripts/build.sh -i
+
 
 
 
