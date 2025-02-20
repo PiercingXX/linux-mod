@@ -61,12 +61,12 @@ This is divided into sections so you can install only what you need.
 ``` ./setup.sh ```
 
 
-11. If you are using a Microsoft Surface device you can now run the script:
+8. If you are using a Microsoft Surface device you can now run the script:
 
 ``` sudo ./Surface.sh ```
 
 
-13. If you want to run Hyprland run:
+9. If you want to run Hyprland run:
 
 ``` sudo ./hyprland-setup.sh ```
 
