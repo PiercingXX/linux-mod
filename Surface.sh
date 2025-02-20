@@ -22,9 +22,9 @@ wait
 sudo dnf config-manager \
     addrepo --from-repofile=https://pkg.surfacelinux.com/fedora/linux-surface.repo
 
-sudo dnf install --allowerasing kernel-surface iptsd libwacom-surface
+sudo dnf install --allowerasing kernel-surface iptsd libwacom-surface -y
 
-sudo dnf install surface-secureboot
+sudo dnf install surface-secureboot -y
 
 sudo systemctl enable --now linux-surface-default-watchdog.path
 
