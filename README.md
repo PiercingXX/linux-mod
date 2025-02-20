@@ -22,12 +22,7 @@ This is divided into sections so you can install only what you need.
  
 ### To install:
 
-1. Boot into your headless system and login with the user name and password you just created. Then:
-
-``` sudo dnf install git -y ```
-
-
-2. After Git installs:
+1. Run
 
 ``` git clone https://github.com/PiercingXX/fedora-mod ```
 
@@ -51,7 +46,7 @@ This is divided into sections so you can install only what you need.
 
 ``` cd fedora-mod ```
 
-``` sudo ./2.sh ```
+``` ./2.sh ```
 
 
 ### **Optional** 

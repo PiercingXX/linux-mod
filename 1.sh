@@ -11,8 +11,8 @@ fi
 username=$(id -u -n 1000)
 builddir=$(pwd)
 
-echo "Starting Script 2.sh"
-sleep 2
+echo "Starting Script 1.sh"
+
 
 # Checks for active network connection
 if [[ -n "$(command -v nmcli)" && "$(nmcli -t -f STATE g)" != connected ]]; then
@@ -21,15 +21,13 @@ if [[ -n "$(command -v nmcli)" && "$(nmcli -t -f STATE g)" != connected ]]; then
 fi
 
 echo "Updating Repositories"
-sleep 2
+
 sudo dnf update && upgrade -y
 wait
 
 
 # Making .config and.fonts Directories
 cd "$builddir" || exit
-mkdir -p /home/"$username"/.config
-chown -R "$username":"$username" /home/"$username"/.config
 mkdir -p /home/"$username"/.fonts
 chown -R "$username":"$username" /home/"$username"/.fonts
 mkdir -p /home/"$username"/.icons
@@ -40,7 +38,8 @@ cp -R dotconf/kitty /home/"$username"/.config/
 chown -R "$username":"$username" /home/"$username"/.config/kitty
 
 
-
+# Installing important things && stuff && some dependencies
+echo "Installing Programs and Drivers"
 dnf install kitty -y
 dnf install dconf* -y
 dnf install pipx -y
@@ -48,20 +47,12 @@ dnf install gnome-tweaks -y
 dnf install papirus-icon-theme -y
 wait
 pipx install gnome-extensions-cli --system-site-packages
-
-
-
-
-
-# Installing important things && stuff && some dependencies
-echo "Installing Programs and Drivers"
-sleep 2
 flatpak install flathub com.mattjakeman.ExtensionManager -y
 flatpak install flathub md.obsidian.Obsidian -y
 flatpak install flathub org.libreoffice.LibreOffice -y
 flatpak install https://flathub.org/beta-repo/appstream/org.gimp.GIMP.flatpakref -y
 flatpak install flathub org.gnome.SimpleScan -y
-flatpak install flathub org.blender.Blender -y
+#flatpak install flathub org.blender.Blender -y
 flatpak install flathub org.qbittorrent.qBittorrent -y
 flatpak install flathub io.missioncenter.MissionCenter -y
 flatpak install flathub com.tomjwatson.Emote -y
@@ -93,13 +84,18 @@ chmod -R 777 Meslo.zip
 unzip Meslo.zip -d /home/"$username"/.fonts
 mv dotfonts/fontawesome/otfs/*.otf /home/"$username"/.fonts/
 chown -R "$username":"$username" /home/"$username"/.fonts
-dnf install fonts-font-awesome fonts-noto-color-emoji -y
-dnf install ttf-mscorefonts-installer -y
-dnf install fonts-terminus -y
+
+dnf install fontawesome-fonts -y 
+dnf install google-noto-emoji-color-fonts -y
+sudo yum install curl cabextract xorg-x11-font-utils fontconfig
+sudo rpm -i https://downloads.sourceforge.net/project/mscorefonts2/rpms/msttcore-fonts-installer-2.6-1.noarch.rpm
 
 # Reloading Font
 fc-cache -vf
 wait
+# Removing zip files and stuff
+rm -rf FiraCode.zip
+rm -rf Meslo.zip
 
 
 
@@ -125,15 +121,10 @@ cd ..
 rm -rf gnome-shell-extension-awesome-tiles
 # Worthless Gaps
 git clone https://github.com/mipmip/gnome-shell-extensions-useless-gaps.git
-chmod -R u+x nome-shell-extensions-useless-gaps
+chmod -R u+x gnome-shell-extensions-useless-gaps
 cd gnome-shell-extensions-useless-gaps || exit
 ./install.sh local-install
 
-
-
-# Removing zip files and stuff
-rm -rf FiraCode.zip
-rm -rf Meslo.zip
 
 
 # Used for fstab
@@ -161,7 +152,7 @@ flatpak update -y
 
 
 
-read -r -p "2.sh complete. Reboot and install Steam and run 3.sh. After steam is installed and opened to be updated you can then run Script nvidia.sh for Nvidia drivers, skip 3.sh if you are not using Nvidia hardware. Press enter to reboot"
+read -r -p "2.sh complete. Press enter to reboot"
 sudo reboot
 
 
