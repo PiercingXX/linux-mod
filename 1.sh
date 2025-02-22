@@ -106,7 +106,7 @@ dnf install gnome-shell-extension-appindicator -y
 dnf install gnome-shell-extension-gsconnect -y
 dnf install gnome-shell-extension-caffeine -y
 dnf install gnome-shell-extension-blur-my-shell -y
-dnf install gnome-shell-extension-forge -y
+dnf install gnome-shell-extension-pop-shell -y
 dnf install gnome-shell-extension-just-perfection -y
 # App Icons Taskbar
 wget https://gitlab.com/AndrewZaech/aztaskbar/-/archive/main/aztaskbar-main.tar
