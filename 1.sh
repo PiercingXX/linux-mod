@@ -112,12 +112,12 @@ dnf install gnome-shell-extension-just-perfection -y
 wget https://gitlab.com/AndrewZaech/aztaskbar/-/archive/main/aztaskbar-main.tar
 gnome-extensions install aztaskbar-main.tar
 # Awesome Tiles
-git clone https://github.com/velitasali/gnome-shell-extension-awesome-tiles.git
-chmod -R u+x gnome-shell-extension-awesome-tiles
-cd gnome-shell-extension-awesome-tiles || exit
-./install.sh local-install
-cd ..
-rm -rf gnome-shell-extension-awesome-tiles
+#git clone https://github.com/velitasali/gnome-shell-extension-awesome-tiles.git
+#chmod -R u+x gnome-shell-extension-awesome-tiles
+#cd gnome-shell-extension-awesome-tiles || exit
+#./install.sh local-install
+#cd ..
+#rm -rf gnome-shell-extension-awesome-tiles
 # Worthless Gaps
 git clone https://github.com/mipmip/gnome-shell-extensions-useless-gaps.git
 chmod -R u+x gnome-shell-extensions-useless-gaps
