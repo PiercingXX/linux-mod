@@ -51,6 +51,7 @@ flatpak install flathub com.mattjakeman.ExtensionManager -y
 flatpak install flathub md.obsidian.Obsidian -y
 flatpak install flathub org.libreoffice.LibreOffice -y
 flatpak install https://flathub.org/beta-repo/appstream/org.gimp.GIMP.flatpakref -y
+flatpak install flathub org.darktable.Darktable -y
 #flatpak install flathub org.blender.Blender -y
 flatpak install flathub org.qbittorrent.qBittorrent -y
 flatpak install flathub io.missioncenter.MissionCenter -y
