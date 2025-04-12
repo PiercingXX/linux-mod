@@ -138,5 +138,5 @@ dnf autoremove -y
 flatpak update -y
 
 
-read -r -p "2.sh complete. Press enter to reboot"
+read -r -p "1.sh complete. Press enter to reboot"
 sudo reboot
