@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # https://github.com/Piercingxx
 
 # Check if Script is Run as Root
@@ -58,20 +57,6 @@ flatpak install flathub io.missioncenter.MissionCenter -y
 flatpak install flathub com.tomjwatson.Emote -y
 flatpak install flathub com.visualstudio.code -y
 flatpak install flathub com.synology.SynologyDrive -y
-
-# Gimp dotfiles
-git clone https://github.com/Piercingxx/gimp-dots.git
-chmod -R u+x gimp-dots
-chown -R "$username":"$username" gimp-dots
-rm -Rf /home/"$username"/.var/app/org.gimp.GIMP/config/GIMP/*
-rm -Rf /home/"$username"/.config/GIMP/*
-mkdir /home/"$username"/.config/GIMP/3.0
-chown -R "$username":"$username" /home/"$username"/.config/GIMP
-cd gimp-dots/Gimp || exit
-cp -R "3.0" /home/"$username"/.config/GIMP/3.0
-chown "$username":"$username" -R /home/"$username"/.config/GIMP
-cd "$builddir" || exit
-
 
 echo "Installing Fonts"
 sleep 2
