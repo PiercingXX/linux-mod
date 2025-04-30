@@ -112,7 +112,7 @@ cd gnome-shell-extensions-useless-gaps || exit
 # Space Bar
 git clone https://github.com/christopher-l/space-bar.git
 chmod -R u+x space-bar
-cd space-bar
+cd space-bar || exit
 ./scripts/build.sh
 ./scripts/build.sh -i
 
