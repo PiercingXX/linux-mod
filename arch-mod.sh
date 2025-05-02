@@ -43,7 +43,7 @@ function msg_box() {
 function menu() {
     whiptail --backtitle "GitHub.com/PiercingXX" --title "Main Menu" \
         --menu "Run Options In Order:" 0 0 0 \
-        "Update Mirrors"                        "Update Mirrors" \
+        "Update Mirrors"                        "Update Mirrors & adds "arch-maintenance.sh" to /home" \
         "Update System"                         "Update System" \
         "Add Paru, Flatpak, & Dependencies"     "Will Automatically Reboot After" \
         "Applications"                          "Install Applications and Utilities" \
@@ -82,6 +82,12 @@ while true; do
             # Update mirrors
             sudo -v reflector --verbose --sort rate -l 75 --save /etc/pacman.d/mirrorlist
             echo -e "${GREEN}Mirrors Updated${NC}"
+            # Copy arch-maintenance.sh to home directory
+                cd script || exit
+                cp -f arch-maintenance.sh /home/"$username"
+                chown "$username":"$username" /home/"$username"/arch-maintenance.sh
+                cd "$builddir" || exit
+            echo -e "${GREEN}Arch-Update.sh Copied To Home Directory${NC}"
             ;;
         "Update System")
             echo -e "${YELLOW}Updating System...${NC}"
