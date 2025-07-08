@@ -130,7 +130,7 @@ sudo dnf install gnome-shell-extension-caffeine -y
 sudo dnf install gnome-shell-extension-blur-my-shell -y
 sudo dnf install gnome-shell-extension-pop-shell -y
 sudo dnf install gnome-shell-extension-just-perfection -y
-# sudo dnf install gnome-shell-extension-forge-noarch -y
+# Super Key
 # App Icons Taskbar
 wget https://gitlab.com/AndrewZaech/aztaskbar/-/archive/main/aztaskbar-main.tar
 chmod u+x aztaskbar-main.tar
@@ -153,7 +153,7 @@ cd just-perfection-main || exit
 wait
 cd "$builddir" || exit
 rm -rf just-perfection-main
-# Workspaces w/ Icons
+# Workspaces indicator by open apps
 git clone https://codeload.github.com/Favo02/workspaces-by-open-apps/zip/refs/heads/main
 extract workspaces-by-open-apps-main.zip
 chmod -R u+x workspaces-by-open-apps-main
