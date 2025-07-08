@@ -25,7 +25,7 @@ fi
 # Install required tools for TUI
 if ! command -v whiptail &> /dev/null; then
     echo -e "${YELLOW}Installing whiptail...${NC}"
-    apt install whiptail -y
+    dnf install whiptail -y
 fi
 
 username=$(id -u -n 1000)
