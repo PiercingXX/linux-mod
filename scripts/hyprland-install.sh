@@ -2,16 +2,17 @@
 # GitHub.com/PiercingXX
 
 # Set up variables for better readability
-PKGMGR="sudo dnf -y"
+PKGMGR="sudo dnf install -y"
 username=$(id -u -n 1000)
 builddir=$(pwd)
 
 #COPR
-sudo dnf copr enable materka/swww
-sudo dnf copr enable solopasha/hyprland
-sudo dnf copr enable erikreider/SwayNotificationCenter
-sudo dnf copr enable errornointernet/packages
-sudo dnf copr enable tofik/nwg-shell 
+sudo dnf copr enable materka/swww -y
+sudo dnf copr enable solopasha/hyprland -y
+sudo dnf copr enable erikreider/SwayNotificationCenter -y
+sudo dnf copr enable errornointernet/packages -y
+sudo dnf copr enable tofik/nwg-shell -y
+sudo dnf update -y
 
 # Install core Hyprland components
 ${PKGMGR} hyprland
