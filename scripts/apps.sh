@@ -21,7 +21,7 @@ fi
 
 echo "Updating Repositories"
 
-sudo dnf update && upgrade -y
+sudo dnf update -y
 wait
 
 # Create Directories if needed
@@ -51,11 +51,11 @@ wait
         chown -R "$username":"$username" /home/"$username"/Pictures/profile-image
     # fstab external drive mounting directory
         if [ ! -d "$HOME/.media/Working-Storage" ]; then
-            mkdir -p /media/Working-Storage
+            sudo mkdir -p /media/Working-Storage
         fi
         chown "$username":"$username" /home/"$username"/media/Working-Storage
         if [ ! -d "$HOME/.media/Archived-Storage" ]; then
-            mkdir -p /media/Archived-Storage
+            sudo mkdir -p /media/Archived-Storage
         fi
         chown "$username":"$username" /home/"$username"/media/Archived-Storage
 
@@ -93,7 +93,7 @@ pipx install gnome-extensions-cli --system-site-packages
 sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
 echo -e "[code]\nname=Visual Studio Code\nbaseurl=https://packages.microsoft.com/yumrepos/vscode\nenabled=1\nautorefresh=1\ntype=rpm-md\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc" | sudo tee /etc/yum.repos.d/vscode.repo > /dev/null
 dnf check-update
-sudo dnf install code
+sudo dnf install code -y
 # Tailscale
     curl -fsSL https://tailscale.com/install.sh | sh
 # Ollama

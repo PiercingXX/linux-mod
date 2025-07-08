@@ -25,7 +25,7 @@ fi
 # Install required tools for TUI
 if ! command -v whiptail &> /dev/null; then
     echo -e "${YELLOW}Installing whiptail...${NC}"
-    dnf install whiptail -y
+    sudo dnf install whiptail -y
 fi
 
 username=$(id -u -n 1000)
@@ -66,11 +66,11 @@ while true; do
             # Copy fedora-maintenance.sh to home directory
                 cd scripts || exit
                 cp -f fedora-maintenance.sh /home/"$username"
-                chown "$username":"$username" /home/"$username"/debian-maintenance.sh
+                chown "$username":"$username" /home/"$username"/fedora-maintenance.sh
                 cd "$builddir" || exit
             # Install Apps
                 cd scripts || exit
-                chmod u+x 1.sh
+                chmod u+x apps.sh
                 sudo ./apps.sh
                 cd "$builddir" || exit
             # Apply Piercing Rice
