@@ -34,6 +34,16 @@ ${PKGMGR} grim
 ${PKGMGR} slurp
 ${PKGMGR} cliphist
 ${PKGMGR} nwg-look
+${PKGMGR} wallust
+${PKGMGR} cmake 
+${PKGMGR} meson 
+${PKGMGR} cpio 
+${PKGMGR} pkg-config
+${PKGMGR} git
+${PKGMGR} g++ 
+${PKGMGR} gcc
+${PKGMGR} swww
+${PKGMGR} fcitx5
 
 
 # Set up Waybar and menus
@@ -72,15 +82,6 @@ ${PKGMGR} dconf
 #Monitor locator
 ${PKGMGR} nwg-displays
 
-${PKGMGR} wallust
-${PKGMGR} cmake 
-${PKGMGR} meson 
-${PKGMGR} cpio 
-${PKGMGR} pkg-config
-${PKGMGR} git
-${PKGMGR} g++ 
-${PKGMGR} gcc
-${PKGMGR} swww
 
 
 # Additional Hyprland plugins and configurations
