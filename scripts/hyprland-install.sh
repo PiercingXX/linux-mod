@@ -73,6 +73,13 @@ ${PKGMGR} dconf
 ${PKGMGR} nwg-displays
 
 ${PKGMGR} wallust
+${PKGMGR} cmake 
+${PKGMGR} meson 
+${PKGMGR} cpio 
+${PKGMGR} pkg-config
+${PKGMGR} git
+${PKGMGR} g++ 
+${PKGMGR} gcc
 ${PKGMGR} swww
 
 

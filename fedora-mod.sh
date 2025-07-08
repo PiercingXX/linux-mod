@@ -138,9 +138,10 @@ while true; do
             ;;
         "Install Cosmic")
             sudo dnf update -y
-            sudo dnf copr enable ryanabx/cosmic-epoch
-            sudo dnf install cosmic-desktop
-            flatpak install flathub dev.edfloreshz.CosmicTweaks
+            sudo dnf copr enable ryanabx/cosmic-epoch -y
+            sudo dnf update -y
+            sudo dnf install cosmic-desktop -y
+            flatpak install flathub dev.edfloreshz.CosmicTweaks -y
             ;;
         "Install Hyprland")
             # Hyprland install
@@ -173,7 +174,7 @@ while true; do
             ;;
         "Reboot System")
             echo -e "${YELLOW}Rebooting system in 3 seconds...${NC}"
-            sleep 2
+            sleep 1
             reboot
             ;;
         "Exit")
