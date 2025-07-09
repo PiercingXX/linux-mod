@@ -3,6 +3,7 @@
 
 ### Notes:
 - Simply install fedora first then run this after.
+- Options to install both Cosmic and/or Hyprland with one click.
 
 
 ### To install:
