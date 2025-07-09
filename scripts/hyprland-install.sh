@@ -44,6 +44,7 @@ ${PKGMGR} g++
 ${PKGMGR} gcc
 ${PKGMGR} swww
 ${PKGMGR} fcitx5
+${PKGMGR} udis86
 
 
 # Set up Waybar and menus

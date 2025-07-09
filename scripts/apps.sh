@@ -84,7 +84,16 @@ flatpak install flathub com.tomjwatson.Emote -y
 flatpak install flathub org.kde.kdenlive -y
 flatpak install flathub io.github.shiftey.Desktop -y
 flatpak install flathub com.flashforge.FlashPrint -y
-flatpak install flathub com.synology.SynologyDrive -y
+
+# Synology Drive
+sudo dnf copr enable emixampp/synology-drive -y
+sudo dnf update -y
+sudo dnf install synology-drive -y
+#flatpak install flathub com.synology.SynologyDrive -y
+
+# Synology Chat
+git clone https://global.synologydownload.com/download/Utility/ChatClient/1.2.3-0232/Ubuntu/x86_64/Synology%20Chat%20Client-1.2.3-0232.deb?model=DS223j&bays=2&dsm_version=7.2.2&build_number=72806
+
 
 # Install Gnome-extensions-cli
 pipx install gnome-extensions-cli --system-site-packages
