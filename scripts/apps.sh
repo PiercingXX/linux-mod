@@ -84,6 +84,7 @@ echo "Installing Programs and Drivers"
     flatpak install flathub org.kde.kdenlive -y
     flatpak install flathub io.github.shiftey.Desktop -y
     flatpak install flathub com.flashforge.FlashPrint -y
+    flatpak install flathub com.discordapp.Discord -y
 
 # Synology Drive
     sudo dnf copr enable emixampp/synology-drive -y
