@@ -108,7 +108,7 @@ sudo dnf install code -y
     curl -fsSL https://ollama.com/install.sh | sh
     #ollama pull gemma3:12b
     ollama pull gemma3n:latest
-    ollama pull codellama:latest
+    #ollama pull codellama:latest
 
 echo "Installing Fonts"
 # Installing fonts
