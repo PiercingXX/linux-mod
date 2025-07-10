@@ -135,22 +135,23 @@ while true; do
             sudo reboot
             ;;
         "Step 2")
-                echo -e "${YELLOW}Reapplying Gnome Customizations...${NC}"
-                # Piercings Gnome Customizations
-                    echo -e "${YELLOW}Applying PiercingXX Gnome Customizations...${NC}"
-                    if [ ! -d "piercing-dots" ] ; then
-                        git clone https://github.com/Piercingxx/piercing-dots.git
-                    else
-                        rm -rf piercing-dots
-                        git clone https://github.com/Piercingxx/piercing-dots.git
-                    fi
-                        chmod -R u+x piercing-dots
-                        chown -R "$username":"$username" piercing-dots
-                        cd piercing-dots || exit
-                        cd scripts || exit
-                        ./gnome-customizations.sh
-                        wait
-                        cd "$builddir" || exit
+            echo -e "${YELLOW}Reapplying Gnome Customizations...${NC}"
+            # Piercings Gnome Customizations
+                echo -e "${YELLOW}Applying PiercingXX Gnome Customizations...${NC}"
+                if [ ! -d "piercing-dots" ] ; then
+                    git clone https://github.com/Piercingxx/piercing-dots.git
+                else
+                    rm -rf piercing-dots
+                    git clone https://github.com/Piercingxx/piercing-dots.git
+                fi
+                    chmod -R u+x piercing-dots
+                    chown -R "$username":"$username" piercing-dots
+                    cd piercing-dots || exit
+                    cd scripts || exit
+                    ./gnome-customizations.sh
+                    wait
+                    cd "$builddir" || exit
+                    rm -rf piercing-dots
             ;;
         "Install Cosmic")
             sudo dnf update -y

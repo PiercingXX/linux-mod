@@ -61,42 +61,41 @@ wait
 
 # Installing important things && stuff && some dependencies
 echo "Installing Programs and Drivers"
-sudo dnf install kitty -y
-sudo dnf install dconf* -y
-sudo dnf install pipx -y
-sudo dnf install typescript -y
-sudo dnf install gnome-tweaks -y
-sudo dnf install papirus-icon-theme -y
-sudo dnf install alien -y
-sudo dnf install ulauncher -y
-sudo dnf install curl -y
-sudo dnf install sushi -y
-flatpak install flathub net.waterfox.waterfox -y
-flatpak install flathub md.obsidian.Obsidian -y
-flatpak install flathub org.libreoffice.LibreOffice -y
-flatpak install https://flathub.org/beta-repo/appstream/org.gimp.GIMP.flatpakref -y
-flatpak install flathub org.darktable.Darktable -y
-flatpak install flathub org.blender.Blender -y
-flatpak install flathub com.mattjakeman.ExtensionManager -y
-flatpak install flathub org.qbittorrent.qBittorrent -y
-flatpak install flathub io.missioncenter.MissionCenter -y
-flatpak install flathub com.tomjwatson.Emote -y
-flatpak install flathub org.kde.kdenlive -y
-flatpak install flathub io.github.shiftey.Desktop -y
-flatpak install flathub com.flashforge.FlashPrint -y
+    sudo dnf install kitty -y
+    sudo dnf install dconf* -y
+    sudo dnf install pipx -y
+    sudo dnf install typescript -y
+    sudo dnf install gnome-tweaks -y
+    sudo dnf install papirus-icon-theme -y
+    sudo dnf install alien -y
+    sudo dnf install ulauncher -y
+    sudo dnf install curl -y
+    sudo dnf install sushi -y
+    flatpak install flathub net.waterfox.waterfox -y
+    flatpak install flathub md.obsidian.Obsidian -y
+    flatpak install flathub org.libreoffice.LibreOffice -y
+    flatpak install https://flathub.org/beta-repo/appstream/org.gimp.GIMP.flatpakref -y
+    flatpak install flathub org.darktable.Darktable -y
+    flatpak install flathub org.blender.Blender -y
+    flatpak install flathub com.mattjakeman.ExtensionManager -y
+    flatpak install flathub org.qbittorrent.qBittorrent -y
+    flatpak install flathub io.missioncenter.MissionCenter -y
+    flatpak install flathub com.tomjwatson.Emote -y
+    flatpak install flathub org.kde.kdenlive -y
+    flatpak install flathub io.github.shiftey.Desktop -y
+    flatpak install flathub com.flashforge.FlashPrint -y
 
 # Synology Drive
-sudo dnf copr enable emixampp/synology-drive -y
-sudo dnf update -y
-sudo dnf install synology-drive -y
-#flatpak install flathub com.synology.SynologyDrive -y
+    sudo dnf copr enable emixampp/synology-drive -y
+    sudo dnf update -y
+    sudo dnf install synology-drive -y
+    #flatpak install flathub com.synology.SynologyDrive -y
 
 # Synology Chat
-git clone https://global.synologydownload.com/download/Utility/ChatClient/1.2.3-0232/Ubuntu/x86_64/Synology%20Chat%20Client-1.2.3-0232.deb?model=DS223j&bays=2&dsm_version=7.2.2&build_number=72806
-
+    wget  https://global.synologydownload.com/download/Utility/ChatClient/1.2.3-0232/Ubuntu/x86_64/Synology%20Chat%20Client-1.2.3-0232.deb?model=DS223j&bays=2&dsm_version=7.2.2&build_number=72806
 
 # Install Gnome-extensions-cli
-pipx install gnome-extensions-cli --system-site-packages
+    pipx install gnome-extensions-cli --system-site-packages
 
 # VScode
 sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
@@ -107,6 +106,9 @@ sudo dnf install code -y
     curl -fsSL https://tailscale.com/install.sh | sh
 # Ollama
     curl -fsSL https://ollama.com/install.sh | sh
+    #ollama pull gemma3:12b
+    ollama pull gemma3n:latest
+    ollama pull codellama:latest
 
 echo "Installing Fonts"
 # Installing fonts
