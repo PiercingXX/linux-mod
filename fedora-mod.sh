@@ -60,7 +60,7 @@ while true; do
     case $choice in
         "Step 1")
             echo -e "${YELLOW}Getting Ready...${NC}"
-                sudo dnf update && upgrade -y
+                sudo dnf update -y
             wait
                 flatpak update -y
             wait
