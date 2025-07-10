@@ -44,6 +44,7 @@ function menu() {
     whiptail --backtitle "GitHub.com/PiercingXX" --title "Main Menu" \
         --menu "Run Options In Order:" 0 0 0 \
         "Step 1"                                "Installs Apps, Fonts, Depends" \
+        "Step 2"                                "Re-Apply Gnome Customizations"\
         "Install Cosmic"                        "Install Cosmic Desktop"\
         "Install Hyprland"                      "Install Hyprland WM & dot files"\
         "Surface Kernel"                        "Install Surface Kernal" \
@@ -75,7 +76,7 @@ while true; do
                 cd "$builddir" || exit
             # Apply Piercing Rice
                 echo -e "${YELLOW}Downloading and Applying PiercingXX Rice...${NC}"
-                # .config Dot Files
+                # .config Files
                 echo -e "${YELLOW}Downloading PiercingXX Dot Files...${NC}"
                     git clone https://github.com/Piercingxx/piercing-dots.git
                         chmod -R u+x piercing-dots
@@ -103,10 +104,7 @@ while true; do
                     chown -R "$username":"$username" /home/"$username"/Pictures/profile-images
                     cd "$builddir" || exit
                 # Copy Refs to Download folder
-                    mkdir -p /home/"$username"/Downloads/refs
-                    chown -R "$username":"$username" /home/"$username"/Downloads/refs
-                    cp -Rf piercing-dots/refs/* /home/"$username"/Downloads/refs
-                    chown -R "$username":"$username" /home/"$username"/Downloads/refs
+                    cp -Rf piercing-dots/refs/* /home/"$username"/Downloads
                     rm -Rf piercing-dots
                 # Apply Gimp Dots
                     echo -e "${YELLOW}Installing Piercing Gimp Presets...${NC}"
@@ -135,6 +133,24 @@ while true; do
                 echo -e "${GREEN}PiercingXX Rice Applied Successfully!${NC}"
             msg_box "System will reboot now. Re-run the script after reboot to continue."
             sudo reboot
+            ;;
+        "Step 2")
+                echo -e "${YELLOW}Reapplying Gnome Customizations...${NC}"
+                # Piercings Gnome Customizations
+                    echo -e "${YELLOW}Applying PiercingXX Gnome Customizations...${NC}"
+                    if [ ! -d "piercing-dots" ] ; then
+                        git clone https://github.com/Piercingxx/piercing-dots.git
+                    else
+                        rm -rf piercing-dots
+                        git clone https://github.com/Piercingxx/piercing-dots.git
+                    fi
+                        chmod -R u+x piercing-dots
+                        chown -R "$username":"$username" piercing-dots
+                        cd piercing-dots || exit
+                        cd scripts || exit
+                        ./gnome-customizations.sh
+                        wait
+                        cd "$builddir" || exit
             ;;
         "Install Cosmic")
             sudo dnf update -y

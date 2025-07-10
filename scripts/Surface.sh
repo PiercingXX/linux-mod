@@ -29,3 +29,4 @@ sudo dnf install surface-secureboot -y
 sudo systemctl enable --now linux-surface-default-watchdog.path
 
 sudo linux-surface-default-watchdog.py
+
