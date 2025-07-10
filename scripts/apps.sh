@@ -107,6 +107,7 @@ sudo dnf install code -y
     curl -fsSL https://tailscale.com/install.sh | sh
 # Ollama
     curl -fsSL https://ollama.com/install.sh | sh
+    ollama serve
     #ollama pull gemma3:12b
     ollama pull gemma3n:latest
     #ollama pull codellama:latest
