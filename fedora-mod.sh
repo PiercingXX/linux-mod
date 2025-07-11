@@ -64,12 +64,12 @@ while true; do
             wait
                 flatpak update -y
             wait
-            # Copy fedora-maintenance.sh to home directory
+            # Copy maintenance-fedora.sh to home directory
                 cd scripts || exit
-                cp -f fedora-maintenance.sh /home/"$username"
-                chown "$username":"$username" /home/"$username"/fedora-maintenance.sh
+                cp -f maintenance-fedora.sh /home/"$username"
+                chown "$username":"$username" /home/"$username"/maintenance-fedora.sh
                 cd "$builddir" || exit
-            # Install Apps
+            # Install Apps 
                 cd scripts || exit
                 chmod u+x apps.sh
                 sudo ./apps.sh
@@ -93,7 +93,7 @@ while true; do
                         ./gnome-customizations.sh
                         wait
                         cd "$builddir" || exit
-                # Add in backgrounds and themes and apply them
+                # Add in backgrounds
                     mkdir -p /home/"$username"/Pictures/backgrounds
                     chown -R "$username":"$username" /home/"$username"/Pictures/backgrounds
                     cp -Rf piercing-dots/backgrounds/* /home/"$username"/Pictures/backgrounds
