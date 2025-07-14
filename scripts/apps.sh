@@ -51,11 +51,11 @@ wait
         chown -R "$username":"$username" /home/"$username"/Pictures/profile-image
     # fstab external drive mounting directory
         if [ ! -d "$HOME/.media/Working-Storage" ]; then
-            sudo mkdir -p /media/Working-Storage
+            mkdir -p /home/"$username"/media/Working-Storage
         fi
         chown "$username":"$username" /home/"$username"/media/Working-Storage
         if [ ! -d "$HOME/.media/Archived-Storage" ]; then
-            sudo mkdir -p /media/Archived-Storage
+            mkdir -p /home/"$username"/media/Archived-Storage
         fi
         chown "$username":"$username" /home/"$username"/media/Archived-Storage
 
