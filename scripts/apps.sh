@@ -73,6 +73,7 @@ echo "Installing Programs and Drivers"
     sudo dnf install sushi -y
     sudo dnf install fd-find -y
     sudo dnf install fzf -y
+    sudo dnf install qbittorrent -y
     flatpak install flathub net.waterfox.waterfox -y
     flatpak install flathub md.obsidian.Obsidian -y
     flatpak install flathub org.libreoffice.LibreOffice -y
@@ -118,6 +119,11 @@ echo "Installing Programs and Drivers"
     echo -e "[code]\nname=Visual Studio Code\nbaseurl=https://packages.microsoft.com/yumrepos/vscode\nenabled=1\nautorefresh=1\ntype=rpm-md\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc" | sudo tee /etc/yum.repos.d/vscode.repo > /dev/null
     dnf check-update -y
     sudo dnf install code -y
+
+# Ventoy
+    sudo dnf copr enable karlisk/ventoy -y
+    sudo dnf update -y
+    sudo dnf install ventoy -y
 
 # Tailscale
     curl -fsSL https://tailscale.com/install.sh | sh
