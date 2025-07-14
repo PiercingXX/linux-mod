@@ -114,10 +114,10 @@ echo "Installing Programs and Drivers"
     python3 -m pip install --user --upgrade pynvim
 
 # VScode
-sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
-echo -e "[code]\nname=Visual Studio Code\nbaseurl=https://packages.microsoft.com/yumrepos/vscode\nenabled=1\nautorefresh=1\ntype=rpm-md\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc" | sudo tee /etc/yum.repos.d/vscode.repo > /dev/null
-dnf check-update
-sudo dnf install code -y
+    sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
+    echo -e "[code]\nname=Visual Studio Code\nbaseurl=https://packages.microsoft.com/yumrepos/vscode\nenabled=1\nautorefresh=1\ntype=rpm-md\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc" | sudo tee /etc/yum.repos.d/vscode.repo > /dev/null
+    dnf check-update -y
+    sudo dnf install code -y
 
 # Tailscale
     curl -fsSL https://tailscale.com/install.sh | sh
@@ -135,71 +135,71 @@ sudo dnf install code -y
 
 echo "Installing Fonts"
 # Installing fonts
-cd "$builddir" || exit
-wget https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/FiraCode.zip
-chmod -R 777 FiraCode.zip
-unzip FiraCode.zip -d /home/"$username"/.fonts
-wget https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/Meslo.zip
-chmod -R 777 Meslo.zip
-unzip Meslo.zip -d /home/"$username"/.fonts
-mv dotfonts/fontawesome/otfs/*.otf /home/"$username"/.fonts/
-chown -R "$username":"$username" /home/"$username"/.fonts
-dnf install fontawesome-fonts -y 
-dnf install google-noto-emoji-color-fonts -y
-sudo yum install curl cabextract xorg-x11-font-utils fontconfig -y
-sudo rpm -i https://downloads.sourceforge.net/project/mscorefonts2/rpms/msttcore-fonts-installer-2.6-1.noarch.rpm
+    cd "$builddir" || exit
+    wget https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/FiraCode.zip
+    chmod -R 777 FiraCode.zip
+    unzip FiraCode.zip -d /home/"$username"/.fonts
+    wget https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/Meslo.zip
+    chmod -R 777 Meslo.zip
+    unzip Meslo.zip -d /home/"$username"/.fonts
+    chown -R "$username":"$username" /home/"$username"/.fonts
+    wget https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/NerdFontsSymbolsOnly.zip
+    chmod -R 777 NerdFontsSymbolsOnly.zip
+    unzip NerdFontsSymbolsOnly.zip -d /home/"$username"/.fonts
+    rm -rf NerdFontsSymbolsOnly.zip
+    rm -rf FiraCode.zip
+    rm -rf Meslo.zip
+    dnf install fontawesome-fonts -y 
+    dnf install google-noto-emoji-color-fonts -y
+    sudo yum install curl cabextract xorg-x11-font-utils fontconfig -y
+    sudo rpm -i https://downloads.sourceforge.net/project/mscorefonts2/rpms/msttcore-fonts-installer-2.6-1.noarch.rpm
 # Reloading Font
-fc-cache -vf
-wait
-# Removing zip files and stuff
-rm -rf FiraCode.zip
-rm -rf Meslo.zip
-
+    fc-cache -vf
+    wait
 
 # Extensions
-echo "Gnome Extensions"
-sudo dnf install gnome-shell-extension-appindicator -y
-sudo dnf install gnome-shell-extension-gsconnect -y
-sudo dnf install gnome-shell-extension-caffeine -y
-sudo dnf install gnome-shell-extension-blur-my-shell -y
-sudo dnf install gnome-shell-extension-pop-shell -y
-sudo dnf install gnome-shell-extension-just-perfection -y
+    echo "Gnome Extensions"
+    sudo dnf install gnome-shell-extension-appindicator -y
+    sudo dnf install gnome-shell-extension-gsconnect -y
+    sudo dnf install gnome-shell-extension-caffeine -y
+    sudo dnf install gnome-shell-extension-blur-my-shell -y
+    sudo dnf install gnome-shell-extension-pop-shell -y
+    sudo dnf install gnome-shell-extension-just-perfection -y
 # Super Key
 # App Icons Taskbar
-wget https://gitlab.com/AndrewZaech/aztaskbar/-/archive/main/aztaskbar-main.tar
-chmod u+x aztaskbar-main.tar
-gnome-extensions install aztaskbar-main.tar
+    wget https://gitlab.com/AndrewZaech/aztaskbar/-/archive/main/aztaskbar-main.tar
+    chmod u+x aztaskbar-main.tar
+    gnome-extensions install aztaskbar-main.tar
 # Useless Gaps
-git clone https://github.com/mipmip/gnome-shell-extensions-useless-gaps.git
-chmod -R u+x nome-shell-extensions-useless-gaps
-cd gnome-shell-extensions-useless-gaps || exit
-sudo ./install.sh local-install
-wait
-cd "$builddir" || exit
-rm -rf gnome-shell-extensions-useless-gaps
+    git clone https://github.com/mipmip/gnome-shell-extensions-useless-gaps.git
+    chmod -R u+x nome-shell-extensions-useless-gaps
+    cd gnome-shell-extensions-useless-gaps || exit
+    sudo ./install.sh local-install
+    wait
+    cd "$builddir" || exit
+    rm -rf gnome-shell-extensions-useless-gaps
 # Just Perfection
-# gext install just-perfection-desktop@just-perfection
-git clone https://gitlab.gnome.org/jrahmatzadeh/just-perfection/-/archive/main/just-perfection-main.zip
-extract just-perfection-main.zip
-chmod -R u+x just-perfection-main
-cd just-perfection-main || exit
-./scripts/build.sh -i
-wait
-cd "$builddir" || exit
-rm -rf just-perfection-main
+    # gext install just-perfection-desktop@just-perfection
+    git clone https://gitlab.gnome.org/jrahmatzadeh/just-perfection/-/archive/main/just-perfection-main.zip
+    extract just-perfection-main.zip
+    chmod -R u+x just-perfection-main
+    cd just-perfection-main || exit
+    ./scripts/build.sh -i
+    wait
+    cd "$builddir" || exit
+    rm -rf just-perfection-main
 # Workspaces indicator by open apps
-git clone https://codeload.github.com/Favo02/workspaces-by-open-apps/zip/refs/heads/main
-extract workspaces-by-open-apps-main.zip
-chmod -R u+x workspaces-by-open-apps-main
-cd workspaces-by-open-apps-main || exit
-sudo ./install.sh local-install
-wait
-cd "$builddir" || exit
-rm -rf workspaces-by-open-apps-main
+    git clone https://codeload.github.com/Favo02/workspaces-by-open-apps/zip/refs/heads/main
+    extract workspaces-by-open-apps-main.zip
+    chmod -R u+x workspaces-by-open-apps-main
+    cd workspaces-by-open-apps-main || exit
+    sudo ./install.sh local-install
+    wait
+    cd "$builddir" || exit
+    rm -rf workspaces-by-open-apps-main
 
-
-sudo dnf update && upgrade -y
-wait
-dnf autoremove -y
-flatpak update -y
-
+# Overkill is underrated.
+    sudo dnf update && upgrade -y
+    wait
+    dnf autoremove -y
+    flatpak update -y
