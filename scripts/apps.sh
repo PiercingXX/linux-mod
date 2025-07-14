@@ -71,6 +71,8 @@ echo "Installing Programs and Drivers"
     sudo dnf install ulauncher -y
     sudo dnf install curl -y
     sudo dnf install sushi -y
+    sudo dnf install fd-find -y
+    sudo dnf install fzf -y
     flatpak install flathub net.waterfox.waterfox -y
     flatpak install flathub md.obsidian.Obsidian -y
     flatpak install flathub org.libreoffice.LibreOffice -y
@@ -98,19 +100,38 @@ echo "Installing Programs and Drivers"
 # Install Gnome-extensions-cli
     pipx install gnome-extensions-cli --system-site-packages
 
+# Nvim & Depends
+    sudo dnf install neovim -y
+    sudo dnf install luarocks -y
+    sudo dnf install python3-pip -y
+    sudo dnf copr enable atim/lazygit -y
+    sudo dnf update -y
+    sudo dnf install lazygit -y
+    sudo dnf install pdflatex -y
+    sudo dnf install sqlite3 -y
+    sudo npm install -g @mermaid-js/mermaid-cli
+    sudo npm install -g neovim
+    python3 -m pip install --user --upgrade pynvim
+
 # VScode
 sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
 echo -e "[code]\nname=Visual Studio Code\nbaseurl=https://packages.microsoft.com/yumrepos/vscode\nenabled=1\nautorefresh=1\ntype=rpm-md\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc" | sudo tee /etc/yum.repos.d/vscode.repo > /dev/null
 dnf check-update
 sudo dnf install code -y
+
 # Tailscale
     curl -fsSL https://tailscale.com/install.sh | sh
+    wait
+
 # Ollama
     curl -fsSL https://ollama.com/install.sh | sh
+    wait
     ollama serve
+    wait
+    #ollama pull codellama:latest
     #ollama pull gemma3:12b
     ollama pull gemma3n:latest
-    #ollama pull codellama:latest
+    wait
 
 echo "Installing Fonts"
 # Installing fonts
