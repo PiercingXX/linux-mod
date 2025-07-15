@@ -120,25 +120,6 @@ echo "Installing Programs and Drivers"
     dnf check-update -y
     sudo dnf install code -y
 
-# Ventoy
-    sudo dnf copr enable karlisk/ventoy -y
-    sudo dnf update -y
-    sudo dnf install ventoy -y
-
-# Tailscale
-    curl -fsSL https://tailscale.com/install.sh | sh
-    wait
-
-# Ollama
-    curl -fsSL https://ollama.com/install.sh | sh
-    wait
-    ollama serve
-    wait
-    #ollama pull codellama:latest
-    #ollama pull gemma3:12b
-    ollama pull gemma3n:latest
-    wait
-
 echo "Installing Fonts"
 # Installing fonts
     cd "$builddir" || exit
@@ -203,6 +184,21 @@ echo "Installing Fonts"
     wait
     cd "$builddir" || exit
     rm -rf workspaces-by-open-apps-main
+
+# Ventoy
+    sudo dnf copr enable karlisk/ventoy -y
+    sudo dnf update -y
+    sudo dnf install ventoy -y
+
+## Tailscale
+#    curl -fsSL https://tailscale.com/install.sh | sh
+#    wait
+
+# Ollama
+    curl -fsSL https://ollama.com/install.sh | sh
+    #ollama pull codellama:latest
+    #ollama pull gemma3:12b
+    #ollama pull gemma3n:latest
 
 # Overkill is underrated.
     sudo dnf update && upgrade -y
