@@ -122,20 +122,15 @@ echo "Installing Programs and Drivers"
 
 echo "Installing Fonts"
 # Installing fonts
+    echo "Installing Fonts"
     cd "$builddir" || exit
     wget https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/FiraCode.zip
-    chmod -R 777 FiraCode.zip
-    unzip FiraCode.zip -d /home/"$username"/.fonts
     wget https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/Meslo.zip
-    chmod -R 777 Meslo.zip
+    wget http://www.i18nguy.com/unicode/andagii.zip
+    unzip FiraCode.zip -d /home/"$username"/.fonts
     unzip Meslo.zip -d /home/"$username"/.fonts
-    chown -R "$username":"$username" /home/"$username"/.fonts
-    wget https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/NerdFontsSymbolsOnly.zip
-    chmod -R 777 NerdFontsSymbolsOnly.zip
-    unzip NerdFontsSymbolsOnly.zip -d /home/"$username"/.fonts
-    rm -rf NerdFontsSymbolsOnly.zip
-    rm -rf FiraCode.zip
-    rm -rf Meslo.zip
+    unzip andagii.zip -d /home/"$username"/.fonts
+    sudo rm FiraCode.zip Meslo.zip andagii.zip
     dnf install fontawesome-fonts -y 
     dnf install google-noto-emoji-color-fonts -y
     sudo yum install curl cabextract xorg-x11-font-utils fontconfig -y
