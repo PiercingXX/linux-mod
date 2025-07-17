@@ -3,8 +3,8 @@
 
 # Check if Script is Run as Root
 if [[ $EUID -ne 0 ]]; then
-  echo "You must be a root user to run this script, please run sudo su then try again" 2>&1
-  exit 1
+    echo "You must be a root user to run this script, please run sudo su then try again" 2>&1
+    exit 1
 fi
 
 username=$(id -u -n 1000)
@@ -15,8 +15,8 @@ echo "Starting Script 1.sh"
 
 # Checks for active network connection
 if [[ -n "$(command -v nmcli)" && "$(nmcli -t -f STATE g)" != connected ]]; then
-  awk '{print}' <<<"Network connectivity is required to continue."
-  exit
+    awk '{print}' <<<"Network connectivity is required to continue."
+    exit
 fi
 
 echo "Updating Repositories"
@@ -96,7 +96,7 @@ echo "Installing Programs and Drivers"
     #flatpak install flathub com.synology.SynologyDrive -y
 
 # Synology Chat
-    wget  https://global.synologydownload.com/download/Utility/ChatClient/1.2.3-0232/Ubuntu/x86_64/Synology%20Chat%20Client-1.2.3-0232.deb?model=DS223j&bays=2&dsm_version=7.2.2&build_number=72806
+    wget  'https://global.synologydownload.com/download/Utility/ChatClient/1.2.3-0232/Ubuntu/x86_64/Synology%20Chat%20Client-1.2.3-0232.deb?model=DS223j&bays=2&dsm_version=7.2.2&build_number=72806'
 
 # Install Gnome-extensions-cli
     pipx install gnome-extensions-cli --system-site-packages
