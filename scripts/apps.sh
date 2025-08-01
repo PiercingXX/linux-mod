@@ -113,6 +113,9 @@ echo "Installing Programs and Drivers"
     sudo npm install -g @mermaid-js/mermaid-cli
     sudo npm install -g neovim
     python3 -m pip install --user --upgrade pynvim
+    # Add Yazi COPR and install
+    sudo dnf copr enable lihaohong/yazi -y
+    sudo dnf install yazi -y
 
 # VScode
     sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
