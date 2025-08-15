@@ -43,7 +43,7 @@ function msg_box() {
 function menu() {
     whiptail --backtitle "GitHub.com/PiercingXX" --title "Main Menu" \
         --menu "Run Options In Order:" 0 0 0 \
-        "1 Step"                                "Installs Apps, Fonts, Depends" \
+        "Install"                               "Install PiercingXX Fedora" \
         "Install Cosmic"                        "Install Cosmic Desktop"\
         "Install Hyprland"                      "Install Hyprland WM & dot files"\
         "Surface Kernel"                        "Install Surface Kernal" \
