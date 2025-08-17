@@ -57,9 +57,13 @@ while true; do
     echo -e "${GREEN}Welcome ${username}${NC}\n"
     choice=$(menu)
     case $choice in
-        "1 Step")
+        "Install")
             echo -e "${YELLOW}Starting: Installing Apps, Fonts, and Dependencies...${NC}"
-            # Install Apps 
+            #Turn off sleep/suspend to avoid interruptions
+                gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'false'
+                gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'false'
+                gsettings set org.gnome.settings-daemon.plugins.power idle-dim 'false'
+            # Install Apps
                 cd scripts || exit
                 chmod u+x apps.sh
                 sudo ./apps.sh

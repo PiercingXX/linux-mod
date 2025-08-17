@@ -26,6 +26,13 @@ builddir=$(pwd)
     flatpak install flathub com.flashforge.FlashPrint -y
     flatpak install flathub com.synology.synology-note-station -y
 
+# Install pipx for gnome-extensions-cli
+    sudo dnf install pipx -y
+    pipx ensurepath
+
+# Install Gnome-extensions-cli
+    pipx install gnome-extensions-cli --system-site-packages
+
 # Synology Drive
     sudo dnf copr enable emixampp/synology-drive -y
     sudo dnf update -y
@@ -35,8 +42,10 @@ builddir=$(pwd)
 # Synology Chat
     wget  'https://global.synologydownload.com/download/Utility/ChatClient/1.2.3-0232/Ubuntu/x86_64/Synology%20Chat%20Client-1.2.3-0232.deb?model=DS223j&bays=2&dsm_version=7.2.2&build_number=72806'
 
-# Install Gnome-extensions-cli
-    pipx install gnome-extensions-cli --system-site-packages
+# Install Yazi
+    sudo dnf copr enable lihaohong/yazi -y
+    sudo dnf update -y
+    dnf install yazi -y
 
 # Nvim & Depends
     sudo dnf install neovim -y
@@ -78,8 +87,6 @@ builddir=$(pwd)
 # Apply Beautiful Bash
     echo -e "${YELLOW}Installing Beautiful Bash...${NC}"
     git clone https://github.com/christitustech/mybash
-        chmod -R u+x mybash
-        chown -R "$username":"$username" mybash
         cd mybash || exit
         ./setup.sh
         wait
@@ -87,7 +94,7 @@ builddir=$(pwd)
         rm -rf mybash
 
 # Overkill is underrated.
-    sudo dnf update && upgrade -y
+    sudo dnf update -y
     wait
     dnf autoremove -y
     flatpak update -y
