@@ -53,7 +53,7 @@ function menu() {
 # Main menu loop
 while true; do
     clear
-    echo -e "${BLUE}PiercingXX's Arch Mod Script${NC}"
+    echo -e "${BLUE}PiercingXX's Fedora-Mod Script${NC}"
     echo -e "${GREEN}Welcome ${username}${NC}\n"
     choice=$(menu)
     case $choice in
@@ -63,6 +63,15 @@ while true; do
                 cd scripts || exit
                 chmod u+x apps.sh
                 sudo ./apps.sh
+                cd "$builddir" || exit
+            # Apply Piercing Rice
+                echo -e "${YELLOW}Applying PiercingXX Gnome Customizations...${NC}"
+                rm -rf piercing-dots
+                git clone --depth 1 https://github.com/Piercingxx/piercing-dots.git
+                chmod -R u+x piercing-dots
+                cd piercing-dots || exit
+                ./install.sh
+                wait
                 cd "$builddir" || exit
             msg_box "System will reboot now. Re-run the script after reboot to continue."
             sudo reboot
