@@ -16,17 +16,32 @@ cache_sudo_credentials() {
     (while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &)
 }
 
-# Checks for active network connection
-if [[ -n "$(command -v nmcli)" && "$(nmcli -t -f STATE g)" != connected ]]; then
-    awk '{print}' <<<"Network connectivity is required to continue."
-    exit
-fi
+# Check for active network connection
+    if command_exists nmcli; then
+        state=$(nmcli -t -f STATE g)
+        if [[ "$state" != connected ]]; then
+            echo "Network connectivity is required to continue."
+            exit 1
+        fi
+    else
+        # Fallback: ensure at least one interface has an IPv4 address
+        if ! ip -4 addr show | grep -q "inet "; then
+            echo "Network connectivity is required to continue."
+            exit 1
+        fi
+    fi
+        # Additional ping test to confirm internet reachability
+        if ! ping -c 1 -W 1 8.8.8.8 >/dev/null 2>&1; then
+            echo "Network connectivity is required to continue."
+            exit 1
+        fi
+
 
 # Install required tools for TUI
-if ! command -v whiptail &> /dev/null; then
-    echo -e "${YELLOW}Installing whiptail...${NC}"
-    sudo dnf install whiptail -y
-fi
+    if ! command -v whiptail &> /dev/null; then
+        echo -e "${YELLOW}Installing whiptail...${NC}"
+        sudo dnf install whiptail -y
+    fi
 
 username=$(id -u -n 1000)
 builddir=$(pwd)

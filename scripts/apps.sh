@@ -84,15 +84,6 @@ builddir=$(pwd)
     curl -fsSL https://tailscale.com/install.sh | sh
     wait
 
-# Apply Beautiful Bash
-    echo -e "${YELLOW}Installing Beautiful Bash...${NC}"
-    git clone https://github.com/christitustech/mybash
-        cd mybash || exit
-        ./setup.sh
-        wait
-        cd "$builddir" || exit
-        rm -rf mybash
-
 # Overkill is underrated.
     sudo dnf update -y
     wait
