@@ -7,33 +7,8 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
-install_starship() {
-    if ! command_exists starship; then
-        if ! curl -sS https://starship.rs/install.sh | sh; then
-            print_colored "$RED" "Something went wrong during starship install!"
-            exit 1
-        fi
-    else
-        printf "Starship already installed\n"
-    fi
-}
-
-install_zoxide() {
-    if ! command_exists zoxide; then
-        if ! curl -sS https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh; then
-            print_colored "$RED" "Something went wrong during zoxide install!"
-            exit 1
-        fi
-    else
-        printf "Zoxide already installed\n"
-    fi
-}
-
-
-
 username=$(id -u -n 1000)
 builddir=$(pwd)
-
 
 # Checks for active network connection
 if [[ -n "$(command -v nmcli)" && "$(nmcli -t -f STATE g)" != connected ]]; then
@@ -91,8 +66,8 @@ sudo dnf update -y
     sudo dnf install zip unzip gzip tar make wget -y
     sudo dnf install bash bash-completion -y
     sudo dnf install tar bat tree multitail fastfetch fontconfig trash-cli -y
-    install_starship
-    install_zoxide
+    sudo dnf install zoxide -y
+    curl -sS https://starship.rs/install.sh | sh
 
 # Install Apps
     cd scripts || exit
