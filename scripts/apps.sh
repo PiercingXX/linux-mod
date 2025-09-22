@@ -25,6 +25,7 @@ builddir=$(pwd)
     flatpak install --noninteractive flathub io.github.realmazharhussain.GdmSettings -y
     flatpak install flathub com.flashforge.FlashPrint -y
     flatpak install flathub com.synology.synology-note-station -y
+    flatpak install flathub com.nextcloud.desktopclient.nextcloud -y
 
 # Install pipx for gnome-extensions-cli
     sudo dnf install pipx -y
