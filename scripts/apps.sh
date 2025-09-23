@@ -12,7 +12,7 @@ builddir=$(pwd)
     flatpak install flathub net.waterfox.waterfox -y
     flatpak install flathub md.obsidian.Obsidian -y
     flatpak install flathub org.libreoffice.LibreOffice -y
-    flatpak install https://flathub.org/beta-repo/appstream/org.gimp.GIMP.flatpakref -y
+    flatpak install flathub org.gimp.GIMP -y
     flatpak install flathub org.darktable.Darktable -y
     flatpak install flathub org.gnome.SimpleScan -y
     flatpak install flathub org.blender.Blender -y
@@ -21,11 +21,11 @@ builddir=$(pwd)
     flatpak install flathub io.missioncenter.MissionCenter -y
     flatpak install flathub org.kde.kdenlive -y
     flatpak install flathub io.github.shiftey.Desktop -y
-    flatpak install flathub com.discordapp.Discord -y
     flatpak install --noninteractive flathub io.github.realmazharhussain.GdmSettings -y
     flatpak install flathub com.flashforge.FlashPrint -y
-    flatpak install flathub com.synology.synology-note-station -y
+    # flatpak install flathub com.synology.synology-note-station -y
     flatpak install flathub com.nextcloud.desktopclient.nextcloud -y
+    # flatpak install flathub com.discordapp.Discord -y
 
 # Install pipx for gnome-extensions-cli
     sudo dnf install pipx -y
