@@ -55,8 +55,6 @@ builddir=$(pwd)
     sudo dnf copr enable atim/lazygit -y
     sudo dnf update -y
     sudo dnf install lazygit -y
-    sudo dnf install pdflatex -y
-    sudo dnf install sqlite3 -y
     sudo npm install -g @mermaid-js/mermaid-cli
     sudo npm install -g neovim
     python3 -m pip install --user --upgrade pynvim
