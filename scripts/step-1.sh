@@ -77,11 +77,22 @@ sudo dnf update -y
     cd "$builddir" || exit
 
 # Installing fonts
-    cd scripts || exit
-    chmod u+x fonts.sh
-    sudo ./fonts.sh
-    wait
+    echo "Installing Fonts"
     cd "$builddir" || exit
+    wget https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/FiraCode.zip
+    wget https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/Meslo.zip
+    wget https://github.com/ryanoasis/nerd-fonts/releases/latest/download/NerdFontsSymbolsOnly.zip
+    unzip FiraCode.zip -d /home/"$username"/.fonts
+    unzip Meslo.zip -d /home/"$username"/.fonts
+    unzip NerdFontsSymbolsOnly.zip -d /home/"$username"/.fonts
+    sudo rm FiraCode.zip Meslo.zip NerdFontsSymbolsOnly.zip
+    dnf install fontawesome-fonts -y 
+    dnf install google-noto-emoji-color-fonts -y
+    sudo yum install curl cabextract xorg-x11-font-utils fontconfig -y
+    sudo rpm -i https://downloads.sourceforge.net/project/mscorefonts2/rpms/msttcore-fonts-installer-2.6-1.noarch.rpm
+# Reloading Font
+    fc-cache -vf
+    wait
 
 # Extensions
     echo "Gnome Extensions"
