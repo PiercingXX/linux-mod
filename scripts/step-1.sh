@@ -64,10 +64,9 @@ sudo dnf update -y
     sudo dnf install fd-find -y
     sudo dnf install fzf -y
     sudo dnf install zip unzip gzip tar make wget -y
-    sudo dnf install bash bash-completion -y
-    sudo dnf install tar bat tree multitail fastfetch fontconfig trash-cli -y
-    sudo dnf install zoxide -y
-    curl -sS https://starship.rs/install.sh | sh
+
+# Bash Stuff
+    install_bashrc_support
 
 # Install Apps
     cd scripts || exit
