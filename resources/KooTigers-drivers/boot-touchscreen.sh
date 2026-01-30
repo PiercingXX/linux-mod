@@ -32,11 +32,18 @@ else
 fi
 
 # Enable and start iio-sensor-proxy if it exists
-if systemctl list-unit-files | grep -q '^iio-sensor-proxy\.service'; then
-    sudo systemctl enable --now iio-sensor-proxy.service
+if systemctl list-units --all --type=service --no-pager | grep -q 'iio-sensor-proxy'; then
+    sudo systemctl restart iio-sensor-proxy 2>/dev/null || true
     echo
+    echo "iio-sensor-proxy service restarted."
     echo "You can now test sensors with:"
     echo "  monitor-sensor    # from package 'iio-sensor-proxy'"
+elif command -v iio-sensor-proxy >/dev/null 2>&1; then
+    echo
+    echo "iio-sensor-proxy binary found but service not detected."
+    echo "The proxy may run on-demand via D-Bus."
+    echo "You can test sensors with:"
+    echo "  monitor-sensor"
 else
-    echo "iio-sensor-proxy.service not found; check installation."
+    echo "Warning: iio-sensor-proxy not found; check installation."
 fi

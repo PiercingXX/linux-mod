@@ -17,7 +17,8 @@ install_deps() {
         export DEBIAN_FRONTEND=noninteractive
         apt-get update
         apt-get install -y \
-            linux-firmware \
+            firmware-linux-free \
+            firmware-linux-nonfree \
             firmware-brcm80211 \
             bluez \
             bluez-tools \
@@ -25,7 +26,7 @@ install_deps() {
             alsa-utils \
             firmware-sof-signed || \
         apt-get install -y \
-            linux-firmware \
+            firmware-linux-free \
             firmware-brcm80211 \
             bluez \
             bluez-tools \
