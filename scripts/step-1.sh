@@ -62,8 +62,9 @@ builddir=$(pwd)
 # Install dependencies
     sudo apt install wget gpg zip unzip gzip tar make curl gcc gettext -y
     sudo apt install build-essential -y
-    sudo apt install firmware-linux-free -y
-    sudo apt install firmware-misc-nonfree -y
+    sudo apt install firmware-linux-free -y #will error on PopOS, but needed for Debian
+    sudo apt install firmware-misc-nonfree -y 
+    sudo apt install linux-firmware -y #will error on Debian, but needed for PopOS
     sudo apt install pipx -y
     sudo apt install jq -y
     pipx install gnome-extensions-cli --system-site-packages
