@@ -115,7 +115,6 @@ builddir=$(pwd)
     sudo apt install tmux -y
     sudo apt install sshpass -y
     sudo apt install htop -y
-    sudo apt install nvtop -y
     sudo apt install lnav -y
 
 # Extras for yazi

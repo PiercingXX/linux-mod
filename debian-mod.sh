@@ -71,11 +71,7 @@ while true; do
     case $choice in
         "Install")
             echo -e "${YELLOW}Updating System...${NC}"
-            # Turn off sleep/suspend to avoid interruptions
-                gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'false'
-                gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'false'
-                gsettings set org.gnome.settings-daemon.plugins.power idle-dim 'false'
-            # Install Rust and Brew here, not in subscript
+            # Install Rust here, not in subscript
                 # Ensure Rust is installed
                     if ! command_exists cargo; then
                         echo -e "${YELLOW}Installing Rust toolchain…${NC}"
@@ -84,12 +80,6 @@ while true; do
                         # Load the new cargo environment for this shell
                         source "$HOME/.cargo/env"
                     fi
-                # Install Brew
-                    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-                    # Add Brew to PATH
-                    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-                    sudo apt-get install build-essential -y
-                    brew install gcc
             # Install Gnome and Dependencies
                 cd scripts || exit
                 chmod u+x step-1.sh

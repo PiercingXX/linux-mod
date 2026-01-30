@@ -20,7 +20,8 @@ apt install -y \
 	nvidia-driver-535 \
 	nvidia-dkms-535 \
 	nvidia-settings \
-	nvidia-utils-535
+	nvidia-utils-535 \
+	nvtop
 
 # Install CUDA 13.0 toolkit
 CUDA_REPO_PKG="cuda-repo-debian13-13-0-local_13.0.0-580.65.06-1_amd64.deb"
