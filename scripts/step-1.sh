@@ -248,12 +248,15 @@ EOF
         git clone --depth=1 https://github.com/pop-os/shell.git pop-os-shell
         cd pop-os-shell || exit
         git submodule update --init --recursive
-        make local-install || {
+        # Build and install as the actual user, not root
+        sudo -u "$username" bash -c "cd $builddir/pop-os-shell && make local-install" || {
             echo "Pop Shell build failed"
             exit 1
         }
-        if [ -d "$HOME/.local/share/gnome-shell/extensions/pop-shell@system76.com/schemas" ]; then
-            glib-compile-schemas "$HOME/.local/share/gnome-shell/extensions/pop-shell@system76.com/schemas"
+        # Compile schemas as user
+        user_ext_dir="/home/$username/.local/share/gnome-shell/extensions/pop-shell@system76.com"
+        if [ -d "$user_ext_dir/schemas" ]; then
+            sudo -u "$username" glib-compile-schemas "$user_ext_dir/schemas"
         fi
         cd "$builddir" || exit
         rm -rf pop-os-shell
