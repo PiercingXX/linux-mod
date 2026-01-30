@@ -109,7 +109,6 @@ builddir=$(pwd)
     sudo apt install libgpm-dev -y
     sudo apt install libjemalloc-dev -y
     sudo apt install libpython3-dev -y
-    sudo apt install libpython-dev -y
     sudo apt install luajit -y
     sudo apt install libluajit-5.1-dev -y
     sudo apt install tmux -y
@@ -119,6 +118,9 @@ builddir=$(pwd)
 
 # Extras for yazi
     sudo apt install ffmpeg p7zip-full poppler-utils fd-find ripgrep fzf zoxide -y
+    # Fix zoxide data directory permissions
+    sudo mkdir -p /home/"$username"/.local/share/zoxide
+    sudo chown -R "$username":"$username" /home/"$username"/.local/share/zoxide
 
 # Installing fonts
     echo "Installing Fonts"
