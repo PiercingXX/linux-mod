@@ -113,11 +113,22 @@ function menu() {
         --menu "Run Options In Order:" 0 0 0 \
         "Install"                               "Install PiercingXX Debian" \
         "Nvidia Driver"                         "Install Nvidia Drivers (Do not install on a Surface Device)" \
+        "Window Managers"                       "Install Hyprland, Sway, i3, or bspwm" \
         "Apply KooTigers Touchscreen Driver"    "Apply KooTigers Touchscreen Driver" \
         "Apply NuVision 8in Tablet Fixes"       "Apply NuVision 8in Tablet Fixes" \
         "Optional Surface Kernel"               "Microsoft Surface Kernel" \
         "Reboot System"                         "Reboot the system" \
         "Exit"                                  "Exit the script" 3>&1 1>&2 2>&3
+}
+
+function window_manager_menu() {
+    whiptail --backtitle "GitHub.com/PiercingXX" --title "Window Managers" \
+        --menu "Select a window manager to install:" 0 0 0 \
+        "Hyprland"                             "Install Hyprland & all dependencies" \
+        "Sway"                                 "Install Sway & all dependencies" \
+        "i3"                                   "Install i3 & all dependencies" \
+        "bspwm"                                "Install bspwm & all dependencies" \
+        "Back"                                 "Return to the main menu" 3>&1 1>&2 2>&3
 }
 # Main menu loop
 while true; do
@@ -189,6 +200,45 @@ while true; do
             echo -e "${GREEN}Nvidia Drivers Installed Successfully!${NC}"
             msg_box "Nvidia Drivers installed successfully. Reboot the system to apply changes."
             sudo reboot
+            ;;
+        "Window Managers")
+            wm_choice=$(window_manager_menu)
+            case $wm_choice in
+                "Hyprland")
+                    echo -e "${YELLOW}Installing Hyprland & Dependencies...${NC}"
+                    cd scripts || exit
+                    chmod u+x hyprland-install.sh
+                    ./hyprland-install.sh
+                    cd "$builddir" || exit
+                    echo -e "${GREEN}Hyprland installed successfully!${NC}"
+                    ;;
+                "Sway")
+                    echo -e "${YELLOW}Installing Sway & Dependencies...${NC}"
+                    cd scripts || exit
+                    chmod u+x sway-install.sh
+                    ./sway-install.sh
+                    cd "$builddir" || exit
+                    echo -e "${GREEN}Sway installed successfully!${NC}"
+                    ;;
+                "i3")
+                    echo -e "${YELLOW}Installing i3 & Dependencies...${NC}"
+                    cd scripts || exit
+                    chmod u+x i3-install.sh
+                    ./i3-install.sh
+                    cd "$builddir" || exit
+                    echo -e "${GREEN}i3 installed successfully!${NC}"
+                    ;;
+                "bspwm")
+                    echo -e "${YELLOW}Installing bspwm & Dependencies...${NC}"
+                    cd scripts || exit
+                    chmod u+x bspwm-install.sh
+                    ./bspwm-install.sh
+                    cd "$builddir" || exit
+                    echo -e "${GREEN}bspwm installed successfully!${NC}"
+                    ;;
+                "Back")
+                    ;;
+            esac
             ;;
         "Apply KooTigers Touchscreen Driver")
             echo -e "${YELLOW}Applying KooTigers Touchscreen Driver...${NC}"
