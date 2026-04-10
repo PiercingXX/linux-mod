@@ -1,6 +1,9 @@
 #!/bin/bash
 # GitHub.com/PiercingXX
 
+# shellcheck source=service-manager.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/service-manager.sh"
+
 # Set up variables for better readability
 PKGMGR="paru -S --noconfirm"
 
@@ -21,6 +24,8 @@ ${PKGMGR} hypridle
 ${PKGMGR} hyprcursor-git
 ${PKGMGR} hyprsunset
 ${PKGMGR} polkit-gnome
+${PKGMGR} seatd
+${PKGMGR} elogind
 
 # Install additional utilities
 ${PKGMGR} wlsunset-git
@@ -71,6 +76,19 @@ ${PKGMGR} dconf
 
 #Monitor locator
 ${PKGMGR} nwg-displays
+
+# Artix service setup across OpenRC/runit/dinit.
+if ! enable_and_start_service seatd; then
+	echo "Warning: Could not start/enable seatd service on this init system."
+fi
+
+if ! enable_and_start_service elogind; then
+	echo "Warning: Could not start/enable elogind service on this init system."
+fi
+
+if ! enable_and_start_service NetworkManager networkmanager; then
+	echo "Warning: Could not start/enable NetworkManager service on this init system."
+fi
 
 
 # Additional Hyprland plugins and configurations

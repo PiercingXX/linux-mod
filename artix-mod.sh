@@ -121,10 +121,25 @@ install_terminal_minimal_session() {
     sudo bash "$(pwd)/piercing-dots/scripts/setup-terminal-session.sh"
 }
 
+configure_default_display_manager() {
+    echo -e "${YELLOW}Configuring default login manager (ly)...${NC}"
+
+    # Stop and disable common alternatives so ly is the only active display manager.
+    disable_and_stop_service lightdm sddm gdm lxdm xdm >/dev/null 2>&1 || true
+
+    if enable_and_start_service ly; then
+        echo -e "${GREEN}ly is now enabled as the default login manager.${NC}"
+    else
+        echo "Warning: Could not enable/start ly service automatically on this init system."
+    fi
+}
+
 window_manager_menu() {
     local options=(
         "Install i3"
         "Install bspwm"
+        "Install Hyprland"
+        "Install GNOME"
         "Install BusyBox Profile"
         "Install Terminal Minimal Session"
         "Back"
@@ -150,6 +165,12 @@ window_manager_menu() {
                 ;;
             "Install bspwm")
                 run_wm_install_script "bspwm" "bspwm-install.sh"
+                ;;
+            "Install Hyprland")
+                run_wm_install_script "Hyprland" "hyprland-install.sh"
+                ;;
+            "Install GNOME")
+                run_wm_install_script "GNOME" "gnome-install.sh"
                 ;;
             "Install BusyBox Profile")
                 run_wm_install_script "BusyBox Profile" "busybox-install.sh"
@@ -208,6 +229,7 @@ while true; do
                 wait
                 cd "$builddir" || exit
             echo -e "${GREEN}Core Apps Installed successfully!${NC}"
+            configure_default_display_manager
             # Window managers now installed from dedicated menu option
             echo -e "${YELLOW}Window manager install/style is now in the Window Managers menu option.${NC}"
             # Enable Bluetooth again

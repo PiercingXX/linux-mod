@@ -48,6 +48,7 @@ builddir=$(pwd)
 
 # Install dependencies
         echo "# Installing dependencies..."
+    sudo pacman -S --needed ly --noconfirm
         sudo pacman -S trash-cli --noconfirm
         sudo pacman -S base-devel gcc cmake meson --noconfirm
         sudo pacman -S git make pkg-config --noconfirm

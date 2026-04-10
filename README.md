@@ -8,6 +8,7 @@ Automates core package installation, GPU drivers, Surface kernel modules, and cu
 ## 📦 Features
 
 - Focused on bspwm and i3 (X11 only), plus developer tools and essential apps
+- Installs and defaults to `ly` as the login screen/display manager
 - Supports Artix init variants (OpenRC, runit, dinit) for service setup
 - Applies [Piercing‑Dots](https://github.com/PiercingXX/piercing-dots) dotfiles and customizations
     - Window Manager Dots and all there utilities
@@ -49,6 +50,8 @@ Options include system install, NVIDIA drivers, Surface kernel, X11 window manag
 | `scripts/apps.sh`     | Installs core desktop applications      |
 | `scripts/bspwm-install.sh` | Installs bspwm and dependencies |
 | `scripts/i3-install.sh` | Installs i3 and dependencies |
+| `scripts/hyprland-install.sh` | Installs Hyprland and Wayland dependencies |
+| `scripts/gnome-install.sh` | Installs GNOME desktop while keeping Ly as display manager |
 | `scripts/install-printers.sh` | Configures Canon D530 or Omezizy label printers |
 | `scripts/nvidia.sh`   | Installs proprietary NVIDIA drivers     |
 | `scripts/surface-kernel-setup.sh`  | Installs Microsoft Surface kernel (GRUB-focused) |
