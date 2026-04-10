@@ -160,8 +160,9 @@ username=$(id -un)
 
 # Tailscale
     paru -S tailscale --noconfirm
-    curl -fsSL https://tailscale.com/install.sh | sh
-    wait
+    if ! enable_and_start_service tailscaled; then
+        echo "Warning: Could not start/enable tailscaled service on this init system."
+    fi
 
 # Docker
     paru -S docker docker-compose --noconfirm
