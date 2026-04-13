@@ -172,7 +172,7 @@ while true; do
     echo -e "${GREEN}Welcome ${username}${NC}\n"
     choice=$(menu)
     case $choice in
-        "Install Void Mod (GNOME Required Base)")
+        "Install Void Mod")
                 echo -e "${YELLOW}Installing Essentials...${NC}"
                 cd scripts || exit
                 chmod u+x step-1.sh
@@ -223,5 +223,5 @@ while true; do
             ;;
     esac
     # Prompt to continue
-    gum confirm "Press [Enter] to continue..." || break
+    read -r -p "Press Enter to continue..." _
 done
