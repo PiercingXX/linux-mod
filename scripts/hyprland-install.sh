@@ -6,6 +6,33 @@ set -euo pipefail
 XI="sudo xbps-install -y"
 REAL_USER="${SUDO_USER:-${USER:-}}"
 HYPR_SOURCE_FALLBACK="${HYPR_SOURCE_FALLBACK:-1}"
+VOID_FORCE_DEFAULT_MIRROR="${VOID_FORCE_DEFAULT_MIRROR:-1}"
+
+setup_void_default_mirror() {
+    local libc
+    libc="glibc"
+    if ldd --version 2>&1 | grep -qi musl; then
+        libc="musl"
+    fi
+
+    echo "Configuring stable default Void mirrors..."
+
+    if [ "$libc" = "musl" ]; then
+        sudo tee /etc/xbps.d/00-repository-main.conf >/dev/null <<'EOF'
+repository=https://repo-default.voidlinux.org/current/musl
+repository=https://repo-default.voidlinux.org/current/musl/nonfree
+EOF
+    else
+        sudo tee /etc/xbps.d/00-repository-main.conf >/dev/null <<'EOF'
+repository=https://repo-default.voidlinux.org/current
+repository=https://repo-default.voidlinux.org/current/nonfree
+repository=https://repo-default.voidlinux.org/current/multilib
+repository=https://repo-default.voidlinux.org/current/multilib/nonfree
+EOF
+    fi
+
+    sudo xbps-install -S
+}
 
 xi_install() {
     if ! $XI "$@"; then
@@ -87,6 +114,10 @@ enable_service() {
         sudo sv up "$service_name" || true
     fi
 }
+
+if [ "$VOID_FORCE_DEFAULT_MIRROR" = "1" ]; then
+    setup_void_default_mirror
+fi
 
 # Ensure build dependencies are available
 echo "Ensuring build dependencies are available..."
