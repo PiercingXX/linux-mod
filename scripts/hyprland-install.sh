@@ -62,7 +62,23 @@ install_hyprland_from_source() {
         ./xbps-src binary-bootstrap
     )
 
-    cat "$build_root/hyprland-void/common/shlibs" >> "$build_root/void-packages/common/shlibs"
+    # Override Hyprland-related shlibs entries with versions from hyprland-void
+    # so pkglint does not reject the older, internally consistent SONAME set.
+    while read -r shlib_line; do
+        [ -z "$shlib_line" ] && continue
+        case "$shlib_line" in
+            \#*) continue ;;
+        esac
+
+        shlib_name="${shlib_line%% *}"
+        case "$shlib_name" in
+            libhypr*|libaquamarine*|libsdbus-c++*|libspng*|libtomlplusplus*)
+                sed -i "\\|^${shlib_name}[[:space:]]|d" "$build_root/void-packages/common/shlibs"
+                echo "$shlib_line" >> "$build_root/void-packages/common/shlibs"
+                ;;
+        esac
+    done < "$build_root/hyprland-void/common/shlibs"
+
     cp -r --remove-destination "$build_root/hyprland-void/srcpkgs"/* "$build_root/void-packages/srcpkgs/"
 
     (
