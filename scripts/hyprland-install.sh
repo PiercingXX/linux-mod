@@ -5,6 +5,7 @@ set -euo pipefail
 
 XI="sudo xbps-install -y"
 REAL_USER="${SUDO_USER:-${USER:-}}"
+HYPR_SOURCE_FALLBACK="${HYPR_SOURCE_FALLBACK:-1}"
 
 xi_install() {
     if ! $XI "$@"; then
@@ -12,6 +13,41 @@ xi_install() {
         sudo xbps-install -S
         $XI "$@"
     fi
+}
+
+install_hyprland_from_source() {
+    local build_root
+    build_root="/tmp/hyprland-void-build"
+
+    echo "Binary Hyprland install failed; falling back to source build."
+    echo "This can take a while depending on CPU and network speed."
+
+    xi_install base-devel git
+
+    rm -rf "$build_root"
+    mkdir -p "$build_root"
+
+    git clone --depth=1 https://github.com/void-linux/void-packages "$build_root/void-packages"
+    git clone --depth=1 https://github.com/Makrennel/hyprland-void "$build_root/hyprland-void"
+
+    (
+        cd "$build_root/void-packages"
+        ./xbps-src binary-bootstrap
+    )
+
+    cat "$build_root/hyprland-void/common/shlibs" >> "$build_root/void-packages/common/shlibs"
+    cp -r --remove-destination "$build_root/hyprland-void/srcpkgs"/* "$build_root/void-packages/srcpkgs/"
+
+    (
+        cd "$build_root/void-packages"
+        ./xbps-src pkg \
+            hyprutils hyprlang hyprgraphics hyprwayland-scanner aquamarine \
+            hyprland hyprpaper hyprlock hypridle hyprcursor xdg-desktop-portal-hyprland
+    )
+
+    sudo xbps-install -yR "$build_root/void-packages/hostdir/binpkgs" \
+        hyprutils hyprlang hyprgraphics hyprwayland-scanner aquamarine \
+        hyprland hyprpaper hyprlock hypridle hyprcursor xdg-desktop-portal-hyprland
 }
 
 hypr_repo_url() {
@@ -72,8 +108,23 @@ if ! xi_install hyprland hyprpaper hyprlock hypridle hyprcursor xdg-desktop-port
     sudo xbps-install -uy
 
     # Some Hyprland builds require these shared libraries explicitly.
-    xi_install hyprutils hyprlang hyprgraphics hyprwayland-scanner aquamarine
-    xi_install hyprland hyprpaper hyprlock hypridle hyprcursor xdg-desktop-portal-hyprland
+    if ! xi_install hyprutils hyprlang hyprgraphics hyprwayland-scanner aquamarine; then
+        if [ "$HYPR_SOURCE_FALLBACK" = "1" ]; then
+            install_hyprland_from_source
+        else
+            echo "Hyprland dependency chain is unresolved in binary repos, and source fallback is disabled." >&2
+            exit 1
+        fi
+    fi
+
+    if ! xi_install hyprland hyprpaper hyprlock hypridle hyprcursor xdg-desktop-portal-hyprland; then
+        if [ "$HYPR_SOURCE_FALLBACK" = "1" ]; then
+            install_hyprland_from_source
+        else
+            echo "Hyprland packages remain unresolved in binary repos, and source fallback is disabled." >&2
+            exit 1
+        fi
+    fi
 fi
 xi_install polkit-gnome
 xi_install seatd elogind dbus
