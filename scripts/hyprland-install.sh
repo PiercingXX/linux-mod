@@ -6,6 +6,14 @@ set -euo pipefail
 XI="sudo xbps-install -y"
 REAL_USER="${SUDO_USER:-${USER:-}}"
 
+xi_install() {
+    if ! $XI "$@"; then
+        echo "Initial xbps install failed, refreshing repository index and retrying..."
+        sudo xbps-install -S
+        $XI "$@"
+    fi
+}
+
 hypr_repo_url() {
     local arch libc
     arch="$(uname -m)"
@@ -46,19 +54,17 @@ enable_service() {
 
 # Ensure build dependencies are available
 echo "Ensuring build dependencies are available..."
-$XI base-devel
-$XI git
-$XI cmake
-$XI meson
-$XI pkg-config
+# Hyprland is installed from binary repositories here, so avoid base-devel
+# to reduce failures on out-of-sync mirrors and cut install time.
+xi_install git cmake meson pkg-config
 
 # Install core Hyprland components
 # NOTE: Hyprland and its ecosystem are available in the void-packages repo.
 echo "Installing Hyprland core components..."
 setup_hyprland_repo
-$XI hyprland hyprpaper hyprlock hypridle hyprcursor xdg-desktop-portal-hyprland
-$XI polkit-gnome
-$XI seatd elogind dbus
+xi_install hyprland hyprpaper hyprlock hypridle hyprcursor xdg-desktop-portal-hyprland
+xi_install polkit-gnome
+xi_install seatd elogind dbus
 enable_service seatd
 enable_service elogind
 enable_service dbus
@@ -91,45 +97,45 @@ EOF
 sudo chmod +x /usr/local/bin/hypr
 
 # Install additional utilities
-$XI wlsunset
-$XI wl-clipboard
+xi_install wlsunset
+xi_install wl-clipboard
 
 # Set up Waybar and menus
-$XI waybar
-$XI fuzzel
-$XI wlogout
-$XI libnotify
-$XI dunst
-$XI brightnessctl
+xi_install waybar
+xi_install fuzzel
+xi_install wlogout
+xi_install libnotify
+xi_install dunst
+xi_install brightnessctl
 
 # Install file manager and customization tools
-$XI thunar
-$XI thunar-volman
+xi_install thunar
+xi_install thunar-volman
 
 # Add screenshot and clipboard utilities
-$XI grim
-$XI slurp
-$XI cliphist
+xi_install grim
+xi_install slurp
+xi_install cliphist
 
 # Install audio tools
- $XI pipewire
- $XI pipewire-pulse
- $XI alsa-utils
-$XI pamixer
-$XI cava
-$XI wireplumber
-$XI playerctl
-$XI pavucontrol
+xi_install pipewire
+xi_install pipewire-pulse
+xi_install alsa-utils
+xi_install pamixer
+xi_install cava
+xi_install wireplumber
+xi_install playerctl
+xi_install pavucontrol
 
 # Network and Bluetooth utilities
-$XI NetworkManager
-$XI network-manager-applet
-$XI bluez
-$XI bluetuith
+xi_install NetworkManager
+xi_install network-manager-applet
+xi_install bluez
+xi_install bluetuith
 
 # GUI customization tools
-$XI nwg-look
-$XI dconf
+xi_install nwg-look
+xi_install dconf
 
 # Hyprland plugins via hyprpm (if hyprpm is available)
 if command -v hyprpm &>/dev/null; then
