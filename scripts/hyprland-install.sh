@@ -216,7 +216,7 @@ xi_install wlsunset
 xi_install wl-clipboard
 
 # Set up Waybar and menus
-xi_install waybar
+xi_install Waybar
 xi_install fuzzel
 xi_install wlogout
 xi_install libnotify
@@ -234,7 +234,6 @@ xi_install cliphist
 
 # Install audio tools
 xi_install pipewire
-xi_install pipewire-pulse
 xi_install alsa-utils
 xi_install pamixer
 xi_install cava
