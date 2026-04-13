@@ -223,10 +223,6 @@ xi_install libnotify
 xi_install dunst
 xi_install brightnessctl
 
-# Install file manager and customization tools
-xi_install thunar
-xi_install thunar-volman
-
 # Add screenshot and clipboard utilities
 xi_install grim
 xi_install slurp
