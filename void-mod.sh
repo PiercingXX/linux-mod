@@ -93,19 +93,19 @@ function msg_box() {
 # Function to display menu using gum
 function menu() {
     gum choose \
-        "Install Void Mod" \
-        "Window Managers" \
-        "Rotate TTY 90 Clockwise" \
-        "Reboot System" \
-        "Exit"
+    "Install Void Mod" \
+    "Install Optional Window Managers" \
+    "Rotate TTY 90 Clockwise" \
+    "Reboot System" \
+    "Exit"
 }
 
 function window_manager_menu() {
     gum choose \
-        "Install Hyprland" \
-        "Install Sway" \
-        "Install i3" \
-        "Install bspwm" \
+    "Install Hyprland (Optional)" \
+    "Install Sway (Optional)" \
+    "Install i3 (Optional)" \
+    "Install bspwm (Optional)" \
         "Back"
 }
 
@@ -145,23 +145,23 @@ install_selected_window_managers() {
 
     wm_choice="$wm_choices"
     case $wm_choice in
-        "Install Hyprland")
+        "Install Hyprland (Optional)")
             run_wm_install_script "Hyprland" "hyprland-install.sh"
             ;;
-        "Install Sway")
+        "Install Sway (Optional)")
             run_wm_install_script "Sway" "sway-install.sh"
             ;;
-        "Install i3")
+        "Install i3 (Optional)")
             run_wm_install_script "i3" "i3-install.sh"
             ;;
-        "Install bspwm")
+        "Install bspwm (Optional)")
             run_wm_install_script "bspwm" "bspwm-install.sh"
             ;;
     esac
 }
 
 prompt_install_window_managers_after_install() {
-    if gum confirm "Install window managers before reboot?"; then
+    if gum confirm "Install optional window managers before reboot?"; then
         install_selected_window_managers
     fi
 }
@@ -172,7 +172,7 @@ while true; do
     echo -e "${GREEN}Welcome ${username}${NC}\n"
     choice=$(menu)
     case $choice in
-        "Install Void Mod")
+        "Install Void Mod (GNOME Required Base)")
                 echo -e "${YELLOW}Installing Essentials...${NC}"
                 cd scripts || exit
                 chmod u+x step-1.sh
@@ -204,7 +204,7 @@ while true; do
             msg_box "System will reboot now."
             sudo reboot
             ;;
-        "Window Managers")
+        "Install Optional Window Managers")
             install_selected_window_managers
             ;;
         "Rotate TTY 90 Clockwise")

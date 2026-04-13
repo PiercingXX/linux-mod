@@ -4,6 +4,7 @@
 set -euo pipefail
 
 YELLOW='\033[1;33m'
+BLUE='\033[1;34m'
 NC='\033[0m'
 
 username=$(id -u -n 1000)
@@ -45,99 +46,61 @@ enable_service() {
             chown -R "$username":"$username" /home/"$username"/Pictures/profile-image
 
 # System Update
-    sudo xbps-install -Su
+    sudo xbps-install -Suv
+    sudo xbps-install -Rs -y void-repo-nonfree
 
-# Install dependencies
+# Install core dependencies (deduped)
     echo "# Installing dependencies..."
-    $XI trash-cli
-    $XI fastfetch
-    $XI tree
-    $XI zoxide
-    $XI bash-completion
-    $XI starship
-    $XI eza
-    $XI bat
-    $XI fzf
-    $XI chafa
-    $XI w3m
-    $XI zip unzip gzip tar make wget fontconfig
-    $XI base-devel gcc
-    $XI linux-firmware
-    $XI bluez
-    $XI iw
-    $XI tmux
-    $XI sshpass
-    $XI htop
-    $XI dbus
-    $XI polkit
+    $XI curl wget git xz unzip zip nano vim gptfdisk xtools mtools mlocate ntfs-3g fuse-exfat
+    $XI bash-completion linux-headers gtksourceview4 ffmpeg mesa mesa-dri mesa-vdpau mesa-vaapi
+    $XI autoconf automake bison m4 make libtool flex meson ninja optipng sassc cmake cpio
+    $XI trash-cli fastfetch tree zoxide starship eza bat fzf chafa w3m fontconfig
+    $XI base-devel gcc linux-firmware iw tmux sshpass htop multitail bluetuith dconf fwupd kitty
+    $XI python3 nodejs npm lnav ulauncher nvtop wmctrl xdotool libinput
+    $XI xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-wlr xdg-user-dirs xdg-user-dirs-gtk xdg-utils
+    $XI dbus elogind polkit gnome-browser-connector
 
-# Enable dbus (required by many desktop components)
-    echo "# Enabling dbus..."
+# GNOME stack
+    echo "# Installing GNOME..."
+    $XI xorg xorg-server-xwayland
+    $XI gnome gdm gnome-disk-utility gnome-calculator seahorse gnome-keyring gnome-shell-extensions gnome-sushi
+
+# Networking, audio, Bluetooth, power
+    $XI NetworkManager NetworkManager-openvpn NetworkManager-openconnect NetworkManager-vpnc NetworkManager-l2tp network-manager-applet
+    $XI pipewire alsa-utils wireplumber playerctl pavucontrol pamixer cava pulseaudio pulseaudio-utils pulsemixer alsa-plugins-pulseaudio
+    $XI bluez cronie tlp tlp-rdw powertop
+
+# Wayland / compositor utilities
+    $XI wl-clipboard Waybar fuzzel wlogout libnotify dunst brightnessctl nwg-look
+
+# Fonts and font config
+    $XI noto-fonts-emoji noto-fonts-ttf noto-fonts-ttf-extra
+    sudo ln -sf /usr/share/fontconfig/conf.avail/70-no-bitmaps.conf /etc/fonts/conf.d/
+    sudo xbps-reconfigure -f fontconfig
+
+# Enable core services
+    echo "# Enabling desktop services..."
     enable_service dbus
+    enable_service elogind
     enable_service polkitd
+    enable_service NetworkManager
+    enable_service bluetoothd
+    enable_service cronie
+    enable_service tlp
+    enable_service gdm
+
+    sudo usermod -aG bluetooth "$username" || true
 
 # Flatpak
     echo -e "${YELLOW}Installing Flatpak & adding Flathub...${NC}"
     $XI flatpak
-    [ -d /etc/sv/dbus ] && sudo ln -sf /etc/sv/dbus /var/service/ || true
     flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-
-# Installing more Depends
-    echo "# Installing more dependencies..."
-    $XI multitail
-    $XI bluetuith
-    $XI dconf
-    $XI cmake meson cpio
-    $XI fwupd
-    $XI kitty
-    $XI python3
-    $XI wmctrl xdotool libinput
-    $XI nodejs npm
-    $XI lnav
-    $XI ulauncher
-    $XI nvtop
-    $XI xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-wlr
     flatpak install flathub net.waterfox.waterfox -y
     flatpak install flathub md.obsidian.Obsidian -y
     flatpak install flathub org.libreoffice.LibreOffice -y
     flatpak install flathub org.qbittorrent.qBittorrent -y
     flatpak install flathub io.missioncenter.MissionCenter -y
-    flatpak install flathub io.github.shiftey.Desktop -y #Github Desktop
-
-# GNOME & Depends
-    echo "# Installing GNOME..."
-    $XI mesa
-    $XI xorg
-    $XI xorg-server-xwayland
-    $XI mesa-dri
-    $XI gnome
-    $XI gnome-disk-utility gnome-calculator
-    $XI seahorse gnome-keyring
-    $XI gnome-shell-extensions gnome-sushi
-    $XI xdg-utils
-    $XI elogind
-    enable_service elogind
-    enable_service gdm
-    enable_service NetworkManager
-
-# Wayland / Compositor utilities
-    $XI wl-clipboard
-    $XI Waybar
-    $XI fuzzel
-    $XI wlogout
-    $XI libnotify
-    $XI dunst
-    $XI brightnessctl
-    $XI pamixer
-    $XI cava
-    $XI pipewire
-    $XI alsa-utils
-    $XI wireplumber
-    $XI playerctl
-    $XI pavucontrol
-    $XI NetworkManager
-    $XI network-manager-applet
-    $XI nwg-look
+    flatpak install flathub io.github.shiftey.Desktop -y # Github Desktop
 
 # Nvim & Depends
     sudo xbps-remove -Ry neovim 2>/dev/null || true
@@ -161,14 +124,11 @@ enable_service() {
 
 # Yazi
     $XI yazi
-    $XI ffmpeg
     $XI 7zip
     $XI jq
     $XI poppler
     $XI fd
     $XI ripgrep
-    $XI fzf
-    $XI zoxide
     $XI ImageMagick
     ya pkg add dedukun/bookmarks
     ya pkg add yazi-rs/plugins:mount
@@ -213,12 +173,8 @@ enable_service() {
     echo "# Enabling Audio, Bluetooth, WiFi and CUPS services..."
     # Enable Audio
         enable_service alsa
-    # Enable Bluetooth
-        enable_service bluetoothd
-    # Enable WiFi / NetworkManager
-        enable_service NetworkManager
     # Enable Printer
-        $XI cups gutenprint cups-pk-helper nmap net-tools cmake meson cpio
+        $XI cups gutenprint cups-pk-helper nmap net-tools
         enable_service cupsd
     # Add dialout group for ZMK / VIA keyboards
         sudo usermod -aG uucp "$USER"
