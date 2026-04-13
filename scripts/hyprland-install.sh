@@ -4,18 +4,44 @@
 set -euo pipefail
 
 XI="sudo xbps-install -y"
+REAL_USER="${SUDO_USER:-${USER:-}}"
 
-install_hyprland_pkg() {
-    echo "Refreshing xbps repository index..."
-    sudo xbps-install -S || true
-
-    if ! xbps-query -Rs hyprland >/dev/null 2>&1; then
-        echo "Error: 'hyprland' package not found in enabled xbps repositories." >&2
-        echo "Enable the appropriate repo/mirror and retry installer." >&2
-        exit 1
+hypr_repo_url() {
+    local arch libc
+    arch="$(uname -m)"
+    if ldd --version 2>&1 | grep -qi musl; then
+        libc="musl"
+    else
+        libc="glibc"
     fi
 
-    $XI hyprland
+    case "$arch" in
+        x86_64|aarch64) ;;
+        *)
+            echo "Unsupported architecture for hyprland-void binaries: $arch" >&2
+            exit 1
+            ;;
+    esac
+
+    echo "https://raw.githubusercontent.com/Makrennel/hyprland-void/repository-${arch}-${libc}"
+}
+
+setup_hyprland_repo() {
+    local repo_url conf_file
+    repo_url="$(hypr_repo_url)"
+    conf_file="/etc/xbps.d/hyprland-void.conf"
+
+    echo "Configuring Hyprland binary repository: ${repo_url}"
+    echo "repository=${repo_url}" | sudo tee "${conf_file}" >/dev/null
+    sudo xbps-install -S
+}
+
+enable_service() {
+    local service_name="$1"
+    if [ -d "/etc/sv/$service_name" ]; then
+        sudo ln -sf "/etc/sv/$service_name" /var/service/
+        sudo sv up "$service_name" || true
+    fi
 }
 
 # Ensure build dependencies are available
@@ -29,12 +55,31 @@ $XI pkg-config
 # Install core Hyprland components
 # NOTE: Hyprland and its ecosystem are available in the void-packages repo.
 echo "Installing Hyprland core components..."
-install_hyprland_pkg
-$XI hyprpaper
-$XI hyprlock
-$XI hypridle
-$XI hyprcursor
+setup_hyprland_repo
+$XI hyprland hyprpaper hyprlock hypridle hyprcursor xdg-desktop-portal-hyprland
 $XI polkit-gnome
+$XI seatd elogind dbus
+enable_service seatd
+enable_service elogind
+enable_service dbus
+
+if [ -n "$REAL_USER" ]; then
+    sudo usermod -aG _seatd "$REAL_USER" || true
+fi
+
+# Hyprland wiki recommends launching from TTY with start-hyprland.
+# Provide a compatible wrapper on systems where the package does not ship it.
+if ! command -v start-hyprland >/dev/null 2>&1; then
+    echo "Creating /usr/local/bin/start-hyprland wrapper..."
+    sudo tee /usr/local/bin/start-hyprland >/dev/null <<'EOF'
+#!/bin/sh
+if command -v Hyprland >/dev/null 2>&1; then
+    exec dbus-run-session Hyprland "$@"
+fi
+exec dbus-run-session hyprland "$@"
+EOF
+    sudo chmod +x /usr/local/bin/start-hyprland
+fi
 
 # Install additional utilities
 $XI wlsunset
