@@ -62,8 +62,8 @@ enable_service() {
 
 # GNOME stack
     echo "# Installing GNOME..."
-    $XI xorg xorg-server-xwayland
-    $XI gnome gdm gnome-disk-utility gnome-calculator seahorse gnome-keyring gnome-shell-extensions gnome-sushi
+    $XI xorg xorg-server-xwayland xinit
+    $XI gnome gdm gnome-session gnome-shell gnome-disk-utility gnome-calculator seahorse gnome-keyring gnome-shell-extensions gnome-sushi
 
 # Networking, audio, Bluetooth, power
     $XI NetworkManager NetworkManager-openvpn NetworkManager-openconnect NetworkManager-vpnc NetworkManager-l2tp network-manager-applet
@@ -90,6 +90,30 @@ enable_service() {
     enable_service gdm
 
     sudo usermod -aG bluetooth "$username" || true
+
+# Desktop launch wrappers for consistent commands from TTY
+    echo "# Creating desktop launch wrappers..."
+    sudo tee /usr/local/bin/gnome-wayland >/dev/null <<'EOF'
+#!/bin/sh
+exec env XDG_SESSION_TYPE=wayland XDG_RUNTIME_DIR="/run/user/$(id -u)" dbus-run-session gnome-session "$@"
+EOF
+    sudo chmod +x /usr/local/bin/gnome-wayland
+
+    sudo tee /usr/local/bin/gnome-x11 >/dev/null <<'EOF'
+#!/bin/sh
+exec startx /usr/bin/gnome-session -- "$@"
+EOF
+    sudo chmod +x /usr/local/bin/gnome-x11
+
+    sudo tee /usr/local/bin/hypr >/dev/null <<'EOF'
+#!/bin/sh
+if command -v start-hyprland >/dev/null 2>&1; then
+    exec start-hyprland "$@"
+fi
+echo "start-hyprland not found. Install Hyprland from the Optional Window Managers menu." >&2
+exit 127
+EOF
+    sudo chmod +x /usr/local/bin/hypr
 
 # Flatpak
     echo -e "${YELLOW}Installing Flatpak & adding Flathub...${NC}"
