@@ -117,10 +117,12 @@ enable_service() {
     $XI xdg-utils
     $XI elogind
     enable_service elogind
+    enable_service gdm
+    enable_service NetworkManager
 
 # Wayland / Compositor utilities
     $XI wl-clipboard
-    $XI waybar
+    $XI Waybar
     $XI fuzzel
     $XI wlogout
     $XI libnotify
@@ -129,7 +131,6 @@ enable_service() {
     $XI pamixer
     $XI cava
     $XI pipewire
-    $XI pipewire-pulse
     $XI alsa-utils
     $XI wireplumber
     $XI playerctl
