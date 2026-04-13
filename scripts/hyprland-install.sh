@@ -59,10 +59,22 @@ echo "Ensuring build dependencies are available..."
 xi_install git cmake meson pkg-config
 
 # Install core Hyprland components
-# NOTE: Hyprland and its ecosystem are available in the void-packages repo.
+# Try official Void repositories first. If dependency resolution fails,
+# fall back to hyprland-void repository with a full index/upgrade refresh.
 echo "Installing Hyprland core components..."
-setup_hyprland_repo
-xi_install hyprland hyprpaper hyprlock hypridle hyprcursor xdg-desktop-portal-hyprland
+if ! xi_install hyprland hyprpaper hyprlock hypridle hyprcursor xdg-desktop-portal-hyprland; then
+    echo "Official repo install failed; enabling hyprland-void fallback repo..."
+    setup_hyprland_repo
+
+    echo "Refreshing repositories and upgrading base packages for ABI consistency..."
+    sudo xbps-install -S
+    sudo xbps-install -uy xbps
+    sudo xbps-install -uy
+
+    # Some Hyprland builds require these shared libraries explicitly.
+    xi_install hyprutils hyprlang hyprgraphics hyprwayland-scanner aquamarine
+    xi_install hyprland hyprpaper hyprlock hypridle hyprcursor xdg-desktop-portal-hyprland
+fi
 xi_install polkit-gnome
 xi_install seatd elogind dbus
 enable_service seatd
