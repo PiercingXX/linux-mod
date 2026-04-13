@@ -3,6 +3,11 @@
 
 set -euo pipefail
 
+# Suppress dconf/gsettings "failed to commit changes" errors when running
+# without a display (installer runs headless under sudo).
+export DISPLAY="${DISPLAY:-:0}"
+export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-/dev/null}"
+
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
@@ -61,6 +66,7 @@ enable_service() {
     $XI chafa
     $XI w3m
     $XI zip unzip gzip tar make wget fontconfig
+    $XI base-devel gcc
     $XI linux-firmware
     $XI bluez
     $XI iw
@@ -145,8 +151,12 @@ enable_service() {
     $XI neovim
     $XI lua51
     $XI python3-pip
-    $XI python3-pynvim
+    $XI python3-neovim
     python3 -m pip install --user --upgrade pynvim
+    command -v nvim >/dev/null 2>&1 || {
+        echo "# Neovim install appears to have failed; check xbps output above."
+        exit 1
+    }
 
 # VSCode (flatpak — no official xbps package)
     flatpak install flathub com.visualstudio.code -y
