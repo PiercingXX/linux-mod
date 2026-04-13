@@ -27,25 +27,33 @@ cache_sudo_credentials() {
 }
 
 ensure_network_online() {
-    if command_exists nmcli; then
-        local state
-        state=$(nmcli -t -f STATE g)
+    local state=""
+
+    if command_exists nmcli && state=$(nmcli -t -f STATE g 2>/dev/null); then
         if [[ "$state" != connected ]]; then
             echo "Network connectivity is required to continue."
-            exit 1
+            echo "nmcli reports state: $state"
         fi
     else
-        # Fallback: ensure at least one interface has an IPv4 address
-        if ! ip -4 addr show | grep -q "inet "; then
+        echo "NetworkManager status unavailable, falling back to route/interface checks..."
+    fi
+
+    if ip route show default 2>/dev/null | grep -q '^default ' && ip -4 addr show up 2>/dev/null | grep -q "inet "; then
+        return 0
+    fi
+
+    # Fallback: ensure at least one interface has an IPv4 address and internet is reachable
+    if ! ip -4 addr show up 2>/dev/null | grep -q "inet "; then
+        echo "Network connectivity is required to continue."
+        exit 1
+    fi
+
+    # Additional ping test to confirm internet reachability when default route detection is inconclusive
+    if ! ping -c 1 -W 1 8.8.8.8 >/dev/null 2>&1; then
+        if ! ping -c 1 -W 1 1.1.1.1 >/dev/null 2>&1; then
             echo "Network connectivity is required to continue."
             exit 1
         fi
-    fi
-
-    # Additional ping test to confirm internet reachability
-    if ! ping -c 1 -W 1 8.8.8.8 >/dev/null 2>&1; then
-        echo "Network connectivity is required to continue."
-        exit 1
     fi
 }
 
