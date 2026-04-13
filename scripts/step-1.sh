@@ -3,11 +3,6 @@
 
 set -euo pipefail
 
-# Suppress dconf/gsettings "failed to commit changes" errors when running
-# without a display (installer runs headless under sudo).
-export DISPLAY="${DISPLAY:-:0}"
-export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-/dev/null}"
-
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
@@ -111,6 +106,7 @@ enable_service() {
 
 # GNOME & Depends
     echo "# Installing GNOME..."
+    $XI mesa
     $XI xorg
     $XI xorg-server-xwayland
     $XI mesa-dri
