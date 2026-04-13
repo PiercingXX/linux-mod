@@ -5,13 +5,17 @@ set -euo pipefail
 
 XI="sudo xbps-install -y"
 
-require_repo_pkg() {
-    local pkg="$1"
-    if ! xbps-query -Rs "$pkg" >/dev/null 2>&1; then
-        echo "Error: package '$pkg' is not available in enabled xbps repositories." >&2
-        echo "Hint: run 'sudo xbps-install -S' and ensure your repository config is enabled, then retry." >&2
+install_hyprland_pkg() {
+    echo "Refreshing xbps repository index..."
+    sudo xbps-install -S || true
+
+    if ! xbps-query -Rs hyprland >/dev/null 2>&1; then
+        echo "Error: 'hyprland' package not found in enabled xbps repositories." >&2
+        echo "Enable the appropriate repo/mirror and retry installer." >&2
         exit 1
     fi
+
+    $XI hyprland
 }
 
 # Ensure build dependencies are available
@@ -25,8 +29,7 @@ $XI pkg-config
 # Install core Hyprland components
 # NOTE: Hyprland and its ecosystem are available in the void-packages repo.
 echo "Installing Hyprland core components..."
-require_repo_pkg hyprland
-$XI hyprland
+install_hyprland_pkg
 $XI hyprpaper
 $XI hyprlock
 $XI hypridle
