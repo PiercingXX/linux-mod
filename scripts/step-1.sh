@@ -115,16 +115,12 @@ enable_service() {
     $XI xorg-server-xwayland
     $XI mesa-dri
     $XI gnome
-    $XI gdm
     $XI gnome-disk-utility gnome-calculator
     $XI seahorse gnome-keyring
     $XI gnome-shell-extensions gnome-sushi
     $XI xdg-utils
     $XI elogind
     enable_service elogind
-    enable_service gdm
-    sudo sv status gdm || true
-    echo "# If GDM still fails after reboot, check: sudo sv status gdm && sudo tail -n 100 /var/log/gdm/*"
 
 # Wayland / Compositor utilities
     $XI wl-clipboard
