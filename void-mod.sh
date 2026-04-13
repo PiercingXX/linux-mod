@@ -95,6 +95,7 @@ function menu() {
     gum choose \
         "Install Void Mod" \
         "Window Managers" \
+        "Rotate TTY 90 Clockwise" \
         "Reboot System" \
         "Exit"
 }
@@ -118,6 +119,17 @@ run_wm_install_script() {
     ./"$script_name"
     cd "$builddir" || exit
     echo -e "${GREEN}${label} Installed successfully!${NC}"
+}
+
+run_helper_script() {
+    local label="$1"
+    local script_name="$2"
+
+    echo -e "${YELLOW}${label}...${NC}"
+    cd scripts || exit
+    chmod u+x "$script_name"
+    ./"$script_name"
+    cd "$builddir" || exit
 }
 
 install_selected_window_managers() {
@@ -194,6 +206,10 @@ while true; do
             ;;
         "Window Managers")
             install_selected_window_managers
+            ;;
+        "Rotate TTY 90 Clockwise")
+            run_helper_script "Rotating TTY 90 degrees clockwise" "rotate-tty-clockwise.sh"
+            msg_box "TTY rotation applied. Reboot for persistent boot-time rotation."
             ;;
         "Reboot System")
             echo -e "${YELLOW}Rebooting system in 3 seconds...${NC}"

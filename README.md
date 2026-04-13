@@ -32,7 +32,7 @@ chmod -R u+x scripts/
 ## 🛠️ Usage
 
 Run `./void-mod.sh` and follow the prompts.  
-Options include minimal system install, window manager install, and reboot.
+Options include minimal system install, window manager install, persistent TTY rotation, and reboot.
 
 
 
@@ -45,6 +45,7 @@ Options include minimal system install, window manager install, and reboot.
 | `scripts/sway-install.sh` | Installs Sway and Wayland stack              |
 | `scripts/i3-install.sh`   | Installs i3 and X11 stack                    |
 | `scripts/bspwm-install.sh`| Installs bspwm and X11 stack                 |
+| `scripts/rotate-tty-clockwise.sh` | Rotates the Linux TTY 90 degrees clockwise and persists it in GRUB |
 | `scripts/install-printers.sh` | Configures Canon D530 or Omezizy label printer |
 
 ---

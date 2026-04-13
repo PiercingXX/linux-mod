@@ -68,10 +68,12 @@ enable_service() {
     $XI sshpass
     $XI htop
     $XI dbus
+    $XI polkit
 
 # Enable dbus (required by many desktop components)
     echo "# Enabling dbus..."
     enable_service dbus
+    enable_service polkitd
 
 # Flatpak
     echo -e "${YELLOW}Installing Flatpak & adding Flathub...${NC}"
@@ -103,6 +105,9 @@ enable_service() {
 
 # GNOME & Depends
     echo "# Installing GNOME..."
+    $XI xorg
+    $XI xorg-server-xwayland
+    $XI mesa-dri
     $XI gnome
     $XI gdm
     $XI gnome-disk-utility gnome-calculator
@@ -112,6 +117,8 @@ enable_service() {
     $XI elogind
     enable_service elogind
     enable_service gdm
+    sudo sv status gdm || true
+    echo "# If GDM still fails after reboot, check: sudo sv status gdm && sudo tail -n 100 /var/log/gdm/*"
 
 # Wayland / Compositor utilities
     $XI wl-clipboard
