@@ -71,9 +71,14 @@ install_hyprland_from_source() {
         esac
 
         shlib_name="${shlib_line%% *}"
+        shlib_base="${shlib_name%%.so*}.so"
+        shlib_base_escaped="$(printf '%s' "$shlib_base" | sed 's/[.[\*^$()+?{}|]/\\&/g')"
+
         case "$shlib_name" in
             libhypr*|libaquamarine*|libsdbus-c++*|libspng*|libtomlplusplus*)
-                sed -i "\\|^${shlib_name}[[:space:]]|d" "$build_root/void-packages/common/shlibs"
+                # Remove all SONAME variants (e.g. .so.10, .so.6) before appending
+                # the version expected by the hyprland-void templates.
+                sed -E -i "/^${shlib_base_escaped}(\.[0-9]+(\.[0-9]+)*)?[[:space:]]/d" "$build_root/void-packages/common/shlibs"
                 echo "$shlib_line" >> "$build_root/void-packages/common/shlibs"
                 ;;
         esac
