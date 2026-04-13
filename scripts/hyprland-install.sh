@@ -68,18 +68,27 @@ if [ -n "$REAL_USER" ]; then
 fi
 
 # Hyprland wiki recommends launching from TTY with start-hyprland.
-# Provide a compatible wrapper on systems where the package does not ship it.
-if ! command -v start-hyprland >/dev/null 2>&1; then
-    echo "Creating /usr/local/bin/start-hyprland wrapper..."
-    sudo tee /usr/local/bin/start-hyprland >/dev/null <<'EOF'
+# Always install wrappers so launch behavior is consistent across systems.
+echo "Creating /usr/local/bin/start-hyprland wrapper..."
+sudo tee /usr/local/bin/start-hyprland >/dev/null <<'EOF'
 #!/bin/sh
+if command -v hyprland >/dev/null 2>&1; then
+    exec dbus-run-session hyprland "$@"
+fi
 if command -v Hyprland >/dev/null 2>&1; then
     exec dbus-run-session Hyprland "$@"
 fi
-exec dbus-run-session hyprland "$@"
+echo "Hyprland binary not found in PATH." >&2
+exit 127
 EOF
-    sudo chmod +x /usr/local/bin/start-hyprland
-fi
+sudo chmod +x /usr/local/bin/start-hyprland
+
+echo "Creating /usr/local/bin/hypr wrapper..."
+sudo tee /usr/local/bin/hypr >/dev/null <<'EOF'
+#!/bin/sh
+exec /usr/local/bin/start-hyprland "$@"
+EOF
+sudo chmod +x /usr/local/bin/hypr
 
 # Install additional utilities
 $XI wlsunset
@@ -140,3 +149,5 @@ fi
 
 # Success message
 echo -e "\nAll Hyprland packages and plugins installed successfully!"
+echo "Start from TTY with: start-hyprland"
+echo "Shortcut command also available: hypr"
