@@ -154,13 +154,19 @@ if ! xi_install hyprland hyprpaper hyprlock hypridle hyprcursor xdg-desktop-port
     echo "Official repo install failed; enabling hyprland-void fallback repo..."
     setup_hyprland_repo
 
-    echo "Refreshing repositories and upgrading base packages for ABI consistency..."
+    # Sync the index — do NOT run a full `xbps-install -uy` here.
+    # A full upgrade with both repos active causes the solver to see packages
+    # from hyprland-void that require libhyprutils.so.6 while the official
+    # repo's hyprutils provides an incompatible soname, aborting the transaction.
     sudo xbps-install -S
-    sudo xbps-install -uy xbps
-    sudo xbps-install -uy
 
-    # Some Hyprland builds require these shared libraries explicitly.
-    if ! xi_install hyprutils hyprlang hyprgraphics hyprwayland-scanner aquamarine; then
+    # Force-install Hyprland deps from the hyprland-void repo to ensure the
+    # correct soname/ABI is on disk before the main Hyprland packages are resolved.
+    # -f overrides the version check so xbps won't refuse to "downgrade" hyprutils
+    # if the official repo has a newer (ABI-incompatible) version installed already.
+    _hypr_repo="$(hypr_repo_url)"
+    if ! sudo xbps-install -fy -R "$_hypr_repo" \
+            hyprutils hyprlang hyprgraphics hyprwayland-scanner aquamarine; then
         if [ "$HYPR_SOURCE_FALLBACK" = "1" ]; then
             install_hyprland_from_source
         else

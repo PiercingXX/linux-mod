@@ -15,10 +15,18 @@ XI="sudo xbps-install -y"
 
 disable_hyprland_fallback_repo() {
     local repo_conf="/etc/xbps.d/hyprland-void.conf"
+    local hypr_pkgs=(
+        aquamarine hyprcursor hyprgraphics hypridle hyprland hyprlang
+        hyprlock hyprpaper hyprutils hyprwayland-scanner
+        xdg-desktop-portal-hyprland
+    )
 
     if [ -f "$repo_conf" ]; then
         echo "# Disabling stale Hyprland fallback repository for base system install..."
         sudo mv "$repo_conf" "${repo_conf}.disabled"
+        echo "# Removing stale Hyprland packages to clear broken shlib dependencies..."
+        # -F = force (ignore dependency errors during removal), -y = assume yes
+        sudo xbps-remove -Fy "${hypr_pkgs[@]}" 2>/dev/null || true
         sudo xbps-install -S || true
     fi
 }

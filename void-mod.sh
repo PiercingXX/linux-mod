@@ -116,7 +116,11 @@ run_wm_install_script() {
     echo -e "${YELLOW}Installing ${label} & Dependencies...${NC}"
     cd scripts || exit
     chmod u+x "$script_name"
-    ./"$script_name"
+    if ! ./"$script_name"; then
+        cd "$builddir" || true
+        echo -e "${YELLOW}${label} install encountered errors — check output above.${NC}"
+        return 1
+    fi
     cd "$builddir" || exit
     echo -e "${GREEN}${label} Installed successfully!${NC}"
 }
