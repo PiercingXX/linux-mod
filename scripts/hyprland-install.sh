@@ -34,6 +34,21 @@ EOF
     sudo xbps-install -S
 }
 
+disable_stale_hyprland_repo() {
+    local repo_conf="/etc/xbps.d/hyprland-void.conf"
+
+    if [ -f "$repo_conf" ]; then
+        echo "Disabling stale hyprland-void repository configuration..."
+        sudo mv "$repo_conf" "${repo_conf}.disabled"
+    fi
+
+    # Purge cached metadata from previous hyprland-void/Makrennel mirrors so
+    # xbps does not keep resolving against stale ABI indexes.
+    sudo find /var/db/xbps/ -maxdepth 1 \
+        \( -name '*hyprland-void*' -o -name '*Makrennel*' \) \
+        -delete 2>/dev/null || true
+}
+
 xi_install() {
     if ! $XI "$@"; then
         echo "Initial xbps install failed, refreshing repository index and retrying..."
@@ -128,17 +143,82 @@ setup_hyprland_repo() {
     sudo xbps-install -S
 }
 
+configure_pipewire_session() {
+    sudo mkdir -p /etc/pipewire/pipewire.conf.d
+    sudo ln -snf /usr/share/examples/wireplumber/10-wireplumber.conf \
+        /etc/pipewire/pipewire.conf.d/10-wireplumber.conf
+    sudo ln -snf /usr/share/examples/pipewire/20-pipewire-pulse.conf \
+        /etc/pipewire/pipewire.conf.d/20-pipewire-pulse.conf
+
+    sudo mkdir -p /etc/alsa/conf.d
+    sudo ln -snf /usr/share/alsa/alsa.conf.d/50-pipewire.conf \
+        /etc/alsa/conf.d/50-pipewire.conf
+    sudo ln -snf /usr/share/alsa/alsa.conf.d/99-pipewire-default.conf \
+        /etc/alsa/conf.d/99-pipewire-default.conf
+
+    if [ -f /usr/share/applications/pipewire.desktop ]; then
+        sudo mkdir -p /etc/xdg/autostart
+        sudo ln -snf /usr/share/applications/pipewire.desktop \
+            /etc/xdg/autostart/pipewire.desktop
+    fi
+}
+
+get_runit_service_dir() {
+    if [ -e /var/service ]; then
+        printf '%s\n' /var/service
+    elif [ -d /etc/runit/runsvdir/current ]; then
+        printf '%s\n' /etc/runit/runsvdir/current
+    elif [ -d /etc/runit/runsvdir/default ]; then
+        printf '%s\n' /etc/runit/runsvdir/default
+    else
+        return 1
+    fi
+}
+
 enable_service() {
     local service_name="$1"
-    if [ -d "/etc/sv/$service_name" ]; then
-        sudo ln -sf "/etc/sv/$service_name" /var/service/
-        sudo sv up "$service_name" || true
+    local required="${2:-1}"
+    local service_dir
+    local started=0
+
+    if [ ! -d "/etc/sv/$service_name" ]; then
+        echo "Missing service directory: /etc/sv/$service_name"
+        [ "$required" -eq 1 ] && return 1
+        return 0
+    fi
+
+    if ! service_dir="$(get_runit_service_dir)"; then
+        echo "Unable to determine runit service directory: $service_name"
+        [ "$required" -eq 1 ] && return 1
+        return 0
+    fi
+
+    sudo mkdir -p "$service_dir"
+    sudo rm -f "$service_dir/$service_name"
+    sudo ln -s "/etc/sv/$service_name" "$service_dir/$service_name"
+
+    for _ in 1 2 3 4 5; do
+        if sudo sv up "$service_name" 2>/dev/null; then
+            if sudo sv status "$service_name" >/dev/null 2>&1; then
+                started=1
+                break
+            fi
+        fi
+        sleep 1
+    done
+
+    if [ "$started" -ne 1 ]; then
+        echo "Failed to start service automatically: $service_name"
+        echo "Expected service files in /etc/sv/$service_name and supervision via $service_dir/$service_name"
+        [ "$required" -eq 1 ] && return 1
     fi
 }
 
 if [ "$VOID_FORCE_DEFAULT_MIRROR" = "1" ]; then
     setup_void_default_mirror
 fi
+disable_stale_hyprland_repo
+sudo xbps-install -S
 
 # Ensure build dependencies are available
 echo "Ensuring build dependencies are available..."
@@ -151,7 +231,8 @@ xi_install mesa mesa-dri mesa-vulkan-intel
 # Try official Void repositories first. If dependency resolution fails,
 # fall back to hyprland-void repository with a full index/upgrade refresh.
 echo "Installing Hyprland core components..."
-if ! xi_install hyprland hyprpaper hyprlock hypridle hyprcursor xdg-desktop-portal-hyprland; then
+if ! xi_install hyprutils hyprlang hyprgraphics hyprwayland-scanner aquamarine \
+    hyprland hyprpaper hyprlock hypridle hyprcursor xdg-desktop-portal-hyprland; then
     echo "Official repo install failed; enabling hyprland-void fallback repo..."
     setup_hyprland_repo
     sudo xbps-install -S
@@ -175,7 +256,8 @@ if ! xi_install hyprland hyprpaper hyprlock hypridle hyprcursor xdg-desktop-port
         fi
     fi
 
-    if ! $XI hyprland hyprpaper hyprlock hypridle hyprcursor xdg-desktop-portal-hyprland; then
+    if ! $XI hyprutils hyprlang hyprgraphics hyprwayland-scanner aquamarine \
+        hyprland hyprpaper hyprlock hypridle hyprcursor xdg-desktop-portal-hyprland; then
         if [ "$HYPR_SOURCE_FALLBACK" = "1" ]; then
             install_hyprland_from_source
         else
@@ -222,7 +304,7 @@ xi_install wlsunset
 xi_install wl-clipboard
 
 # Set up Waybar and menus
-xi_install Waybar
+xi_install waybar
 xi_install fuzzel
 xi_install wlogout
 xi_install libnotify
@@ -236,12 +318,19 @@ xi_install cliphist
 
 # Install audio tools
 xi_install pipewire
+xi_install pipewire-pulse
+xi_install alsa-pipewire
 xi_install alsa-utils
+xi_install rtkit
 xi_install pamixer
 xi_install cava
 xi_install wireplumber
+xi_install wireplumber-elogind
 xi_install playerctl
 xi_install pavucontrol
+configure_pipewire_session
+enable_service alsa
+enable_service rtkit 0
 
 # Network and Bluetooth utilities
 xi_install NetworkManager

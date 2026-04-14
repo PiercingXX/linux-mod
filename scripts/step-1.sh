@@ -3,6 +3,8 @@
 
 set -euo pipefail
 
+trap 'echo "# Installer failed at line ${LINENO}: ${BASH_COMMAND}" >&2' ERR
+
 YELLOW='\033[1;33m'
 BLUE='\033[1;34m'
 NC='\033[0m'
@@ -37,20 +39,65 @@ disable_hyprland_fallback_repo() {
     fi
 }
 
+get_runit_service_dir() {
+    if [ -e /var/service ]; then
+        printf '%s\n' /var/service
+    elif [ -d /etc/runit/runsvdir/current ]; then
+        printf '%s\n' /etc/runit/runsvdir/current
+    elif [ -d /etc/runit/runsvdir/default ]; then
+        printf '%s\n' /etc/runit/runsvdir/default
+    else
+        return 1
+    fi
+}
+
 enable_service() {
     local service_name="$1"
+    local required="${2:-1}"
+    local service_dir
+    local started=0
+
     if [ -d "/etc/sv/$service_name" ]; then
-        sudo ln -sf "/etc/sv/$service_name" /var/service/
+        if ! service_dir="$(get_runit_service_dir)"; then
+            echo "# Unable to determine runit service directory: $service_name"
+            if [ "$required" -eq 1 ]; then
+                return 1
+            fi
+            return 0
+        fi
+
+        sudo mkdir -p "$service_dir"
+        # Recreate the link so runsvdir reliably notices newly enabled services.
+        sudo rm -f "$service_dir/$service_name"
+        sudo ln -s "/etc/sv/$service_name" "$service_dir/$service_name"
+
         # runsv can take a moment to create supervise/control after linking.
         # Retry briefly so first-boot service bring-up is more reliable.
         for _ in 1 2 3 4 5; do
             if sudo sv up "$service_name" 2>/dev/null; then
-                break
+                if sudo sv status "$service_name" >/dev/null 2>&1; then
+                    started=1
+                    break
+                fi
             fi
             sleep 1
         done
+
+        if [ "$started" -ne 1 ]; then
+            echo "# Failed to start service automatically: $service_name"
+            echo "# Expected service files in /etc/sv/$service_name and supervision via $service_dir/$service_name"
+            echo "# Check runit (ps -p 1 -o comm=, pgrep -a runsvdir) or reboot, then run: sudo sv up $service_name"
+            if [ "$required" -eq 1 ]; then
+                return 1
+            fi
+            return 0
+        fi
     else
-        echo "# Skipping missing service: $service_name"
+        echo "# Missing service directory: /etc/sv/$service_name"
+        if [ "$required" -eq 1 ]; then
+            return 1
+        fi
+        return 0
     fi
 }
 
@@ -83,6 +130,26 @@ Section "InputClass"
     Option "CalibrationMatrix" "0 1 0 -1 0 1 0 0 1"
 EndSection
 EOF
+}
+
+configure_pipewire_session() {
+    sudo mkdir -p /etc/pipewire/pipewire.conf.d
+    sudo ln -snf /usr/share/examples/wireplumber/10-wireplumber.conf \
+        /etc/pipewire/pipewire.conf.d/10-wireplumber.conf
+    sudo ln -snf /usr/share/examples/pipewire/20-pipewire-pulse.conf \
+        /etc/pipewire/pipewire.conf.d/20-pipewire-pulse.conf
+
+    sudo mkdir -p /etc/alsa/conf.d
+    sudo ln -snf /usr/share/alsa/alsa.conf.d/50-pipewire.conf \
+        /etc/alsa/conf.d/50-pipewire.conf
+    sudo ln -snf /usr/share/alsa/alsa.conf.d/99-pipewire-default.conf \
+        /etc/alsa/conf.d/99-pipewire-default.conf
+
+    if [ -f /usr/share/applications/pipewire.desktop ]; then
+        sudo mkdir -p /etc/xdg/autostart
+        sudo ln -snf /usr/share/applications/pipewire.desktop \
+            /etc/xdg/autostart/pipewire.desktop
+    fi
 }
 
 # Create Directories if needed
@@ -130,16 +197,17 @@ EOF
 
 # Networking, audio, Bluetooth, power
     $XI NetworkManager NetworkManager-openvpn NetworkManager-openconnect NetworkManager-vpnc NetworkManager-l2tp network-manager-applet wpa_supplicant
-    $XI pipewire alsa-utils wireplumber playerctl pavucontrol pamixer cava pulseaudio pulseaudio-utils pulsemixer alsa-plugins-pulseaudio
+    $XI pipewire pipewire-pulse alsa-pipewire alsa-utils wireplumber wireplumber-elogind playerctl pavucontrol pamixer cava pulseaudio-utils pulsemixer rtkit
     $XI bluez cronie tlp tlp-rdw powertop
 
 # Wayland / compositor utilities
-    $XI wl-clipboard Waybar fuzzel wlogout libnotify dunst brightnessctl nwg-look
+    $XI wl-clipboard waybar fuzzel wlogout libnotify dunst brightnessctl nwg-look
 
 # Fonts and font config
     $XI noto-fonts-emoji noto-fonts-ttf noto-fonts-ttf-extra
     sudo ln -sf /usr/share/fontconfig/conf.avail/70-no-bitmaps.conf /etc/fonts/conf.d/
     sudo xbps-reconfigure -f fontconfig
+    configure_pipewire_session
 
 # Enable core services
     echo "# Enabling desktop services..."
@@ -151,6 +219,8 @@ EOF
     enable_service bluetoothd
     enable_service cronie
     enable_service tlp
+    enable_service alsa
+    enable_service rtkit 0
     enable_service gdm
 
     sudo usermod -aG bluetooth "$username" || true
@@ -188,28 +258,40 @@ EOF
     sudo flatpak install --system flathub org.libreoffice.LibreOffice -y
     sudo flatpak install --system flathub org.qbittorrent.qBittorrent -y
     sudo flatpak install --system flathub io.missioncenter.MissionCenter -y
+    sudo flatpak install --system flathub com.synology.SynologyDrive -y
     sudo flatpak install --system flathub io.github.shiftey.Desktop -y # Github Desktop
     sudo flatpak install --system flathub com.mattjakeman.ExtensionManager -y
 
-# Nvim & Depends
-    sudo xbps-remove -Ry neovim 2>/dev/null || true
-    $XI neovim
-    $XI lua51
-    $XI python3-pip
-    $XI python3-neovim
-    python3 -m pip install --user --upgrade pynvim
-    command -v nvim >/dev/null 2>&1 || {
-        echo "# Neovim install appears to have failed; check xbps output above."
-        exit 1
-    }
-
-# VSCode (flatpak — no official xbps package)
-    sudo flatpak install --system flathub com.visualstudio.code -y
+# VS Code (native install)
+    echo "# Installing VS Code natively..."
+    mkdir -p "$HOME/.local/opt/vscode" "$HOME/.local/bin"
+    
+    # Download VS Code if not already present
+    if [ ! -f "$HOME/Downloads/code.tar.gz" ]; then
+        echo "# Downloading VS Code from update server..."
+        cd "$HOME/Downloads"
+        wget -q -O code.tar.gz https://update.code.visualstudio.com/latest/linux-x64/stable || {
+            echo "# Warning: Failed to download VS Code. Skipping native install."
+            echo "# Download manually: wget -q -O ~/Downloads/code.tar.gz https://update.code.visualstudio.com/latest/linux-x64/stable"
+        }
+        cd - >/dev/null
+    fi
+    
+    # Extract if archive exists
+    if [ -f "$HOME/Downloads/code.tar.gz" ]; then
+        echo "# Extracting VS Code..."
+        tar -xzf "$HOME/Downloads/code.tar.gz" -C "$HOME/.local/opt/vscode" --strip-components=1 2>/dev/null || true
+        ln -snf "$HOME/.local/opt/vscode/bin/code" "$HOME/.local/bin/code"
+        if ! grep -q 'export PATH.*\.local/bin' "$HOME/.bashrc"; then
+            echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+        fi
+        echo "# VS Code installed to $HOME/.local/opt/vscode"
+    fi
 
 # Firewall
     $XI ufw
     sudo ufw allow OpenSSH
-    enable_service ufw
+    enable_service ufw 0
 
 # Yazi
     $XI yazi
@@ -219,6 +301,14 @@ EOF
     $XI fd
     $XI ripgrep
     $XI ImageMagick
+    command -v yazi >/dev/null 2>&1 || {
+        echo "# Yazi install appears to have failed; check xbps output above."
+        exit 1
+    }
+    command -v ya >/dev/null 2>&1 || {
+        echo "# Yazi package installed but 'ya' is missing; skipping Yazi plugin install."
+        exit 1
+    }
     ya pkg add dedukun/bookmarks
     ya pkg add yazi-rs/plugins:mount
     ya pkg add dedukun/relative-motions
