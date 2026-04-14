@@ -129,7 +129,7 @@ EOF
     $XI gnome gdm gnome-session gnome-shell gnome-disk-utility gnome-calculator seahorse gnome-keyring gnome-shell-extensions gnome-sushi
 
 # Networking, audio, Bluetooth, power
-    $XI NetworkManager NetworkManager-openvpn NetworkManager-openconnect NetworkManager-vpnc NetworkManager-l2tp network-manager-applet
+    $XI NetworkManager NetworkManager-openvpn NetworkManager-openconnect NetworkManager-vpnc NetworkManager-l2tp network-manager-applet wpa_supplicant
     $XI pipewire alsa-utils wireplumber playerctl pavucontrol pamixer cava pulseaudio pulseaudio-utils pulsemixer alsa-plugins-pulseaudio
     $XI bluez cronie tlp tlp-rdw powertop
 
