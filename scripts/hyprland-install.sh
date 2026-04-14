@@ -255,6 +255,9 @@ xi_install dconf
 # Hyprland plugins via hyprpm (if hyprpm is available)
 if command -v hyprpm &>/dev/null; then
     echo "Updating and loading Hyprland plugin manager..."
+    # hyprpm update clones and builds Hyprland from source to compile plugins;
+    # it needs wayland-protocols-devel, wayland-scanner, and GLES3 headers.
+    $XI wayland-protocols wayland-devel mesa-devel
     hyprpm update
     hyprpm reload
 
