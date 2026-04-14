@@ -182,13 +182,13 @@ EOF
 # Flatpak
     echo -e "${YELLOW}Installing Flatpak & adding Flathub...${NC}"
     $XI flatpak
-    flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-    flatpak install flathub net.waterfox.waterfox -y
-    flatpak install flathub md.obsidian.Obsidian -y
-    flatpak install flathub org.libreoffice.LibreOffice -y
-    flatpak install flathub org.qbittorrent.qBittorrent -y
-    flatpak install flathub io.missioncenter.MissionCenter -y
-    flatpak install flathub io.github.shiftey.Desktop -y # Github Desktop
+    sudo flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+    sudo flatpak install --system flathub net.waterfox.waterfox -y
+    sudo flatpak install --system flathub md.obsidian.Obsidian -y
+    sudo flatpak install --system flathub org.libreoffice.LibreOffice -y
+    sudo flatpak install --system flathub org.qbittorrent.qBittorrent -y
+    sudo flatpak install --system flathub io.missioncenter.MissionCenter -y
+    sudo flatpak install --system flathub io.github.shiftey.Desktop -y # Github Desktop
 
 # Nvim & Depends
     sudo xbps-remove -Ry neovim 2>/dev/null || true
@@ -203,7 +203,7 @@ EOF
     }
 
 # VSCode (flatpak — no official xbps package)
-    flatpak install flathub com.visualstudio.code -y
+    sudo flatpak install --system flathub com.visualstudio.code -y
 
 # Firewall
     $XI ufw
