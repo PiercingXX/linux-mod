@@ -189,6 +189,7 @@ EOF
     sudo flatpak install --system flathub org.qbittorrent.qBittorrent -y
     sudo flatpak install --system flathub io.missioncenter.MissionCenter -y
     sudo flatpak install --system flathub io.github.shiftey.Desktop -y # Github Desktop
+    sudo flatpak install --system flathub com.mattjakeman.ExtensionManager -y
 
 # Nvim & Depends
     sudo xbps-remove -Ry neovim 2>/dev/null || true
