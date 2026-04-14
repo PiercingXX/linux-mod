@@ -13,6 +13,16 @@ builddir=$(pwd)
 # xbps helper — install only (sync is handled by system update)
 XI="sudo xbps-install -y"
 
+disable_hyprland_fallback_repo() {
+    local repo_conf="/etc/xbps.d/hyprland-void.conf"
+
+    if [ -f "$repo_conf" ]; then
+        echo "# Disabling stale Hyprland fallback repository for base system install..."
+        sudo mv "$repo_conf" "${repo_conf}.disabled"
+        sudo xbps-install -S || true
+    fi
+}
+
 enable_service() {
     local service_name="$1"
     if [ -d "/etc/sv/$service_name" ]; then
@@ -46,6 +56,7 @@ enable_service() {
             chown -R "$username":"$username" /home/"$username"/Pictures/profile-image
 
 # System Update
+    disable_hyprland_fallback_repo
     sudo xbps-install -Suv
     sudo xbps-install -Rs -y void-repo-nonfree
 
@@ -62,7 +73,7 @@ enable_service() {
 
 # GNOME stack
     echo "# Installing GNOME..."
-    $XI xorg xorg-server-xwayland xinit
+    $XI xorg xorg-server-xwayland xinit xauth xterm twm
     $XI gnome gdm gnome-session gnome-shell gnome-disk-utility gnome-calculator seahorse gnome-keyring gnome-shell-extensions gnome-sushi
 
 # Networking, audio, Bluetooth, power
@@ -101,7 +112,7 @@ EOF
 
     sudo tee /usr/local/bin/gnome-x11 >/dev/null <<'EOF'
 #!/bin/sh
-exec startx /usr/bin/gnome-session -- "$@"
+exec dbus-run-session startx /usr/bin/gnome-session -- "$@"
 EOF
     sudo chmod +x /usr/local/bin/gnome-x11
 
