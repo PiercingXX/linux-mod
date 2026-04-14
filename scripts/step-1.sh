@@ -24,8 +24,14 @@ disable_hyprland_fallback_repo() {
     if [ -f "$repo_conf" ]; then
         echo "# Disabling stale Hyprland fallback repository for base system install..."
         sudo mv "$repo_conf" "${repo_conf}.disabled"
+        # Delete the cached repodata files for hyprland-void from xbps's on-disk
+        # index. Without this, xbps-install -Suv still sees ghost entries from
+        # the old repo (e.g. aquamarine requiring libhyprutils.so.6) even though
+        # the repo conf is now disabled, and aborts the transaction.
+        sudo find /var/db/xbps/ -maxdepth 1 \
+            \( -name '*hyprland-void*' -o -name '*Makrennel*' \) \
+            -delete 2>/dev/null || true
         echo "# Removing stale Hyprland packages to clear broken shlib dependencies..."
-        # -F = force (ignore dependency errors during removal), -y = assume yes
         sudo xbps-remove -Fy "${hypr_pkgs[@]}" 2>/dev/null || true
         sudo xbps-install -S || true
     fi

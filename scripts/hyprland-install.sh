@@ -153,20 +153,19 @@ echo "Installing Hyprland core components..."
 if ! xi_install hyprland hyprpaper hyprlock hypridle hyprcursor xdg-desktop-portal-hyprland; then
     echo "Official repo install failed; enabling hyprland-void fallback repo..."
     setup_hyprland_repo
-
-    # Sync the index — do NOT run a full `xbps-install -uy` here.
-    # A full upgrade with both repos active causes the solver to see packages
-    # from hyprland-void that require libhyprutils.so.6 while the official
-    # repo's hyprutils provides an incompatible soname, aborting the transaction.
     sudo xbps-install -S
 
-    # Force-install Hyprland deps from the hyprland-void repo to ensure the
-    # correct soname/ABI is on disk before the main Hyprland packages are resolved.
-    # -f overrides the version check so xbps won't refuse to "downgrade" hyprutils
-    # if the official repo has a newer (ABI-incompatible) version installed already.
-    _hypr_repo="$(hypr_repo_url)"
-    if ! sudo xbps-install -fy -R "$_hypr_repo" \
-            hyprutils hyprlang hyprgraphics hyprwayland-scanner aquamarine; then
+    # Remove any installed Hyprland packages that carry the wrong ABI soname.
+    # This clears the solver's view of broken shlib requirements so xbps can
+    # plan a clean install from hyprland-void without hitting the
+    # "libhyprutils.so.6 unresolvable" abort.
+    echo "Clearing stale Hyprland packages before ABI-consistent reinstall..."
+    sudo xbps-remove -Fy \
+        aquamarine hyprcursor hyprgraphics hypridle hyprland hyprlang \
+        hyprlock hyprpaper hyprutils hyprwayland-scanner \
+        xdg-desktop-portal-hyprland 2>/dev/null || true
+
+    if ! $XI hyprutils hyprlang hyprgraphics hyprwayland-scanner aquamarine; then
         if [ "$HYPR_SOURCE_FALLBACK" = "1" ]; then
             install_hyprland_from_source
         else
@@ -175,7 +174,7 @@ if ! xi_install hyprland hyprpaper hyprlock hypridle hyprcursor xdg-desktop-port
         fi
     fi
 
-    if ! xi_install hyprland hyprpaper hyprlock hypridle hyprcursor xdg-desktop-portal-hyprland; then
+    if ! $XI hyprland hyprpaper hyprlock hypridle hyprcursor xdg-desktop-portal-hyprland; then
         if [ "$HYPR_SOURCE_FALLBACK" = "1" ]; then
             install_hyprland_from_source
         else
