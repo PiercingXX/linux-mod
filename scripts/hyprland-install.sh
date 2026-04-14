@@ -145,6 +145,7 @@ echo "Ensuring build dependencies are available..."
 # Hyprland is installed from binary repositories here, so avoid base-devel
 # to reduce failures on out-of-sync mirrors and cut install time.
 xi_install git cmake meson pkg-config
+xi_install mesa mesa-dri mesa-vulkan-intel
 
 # Install core Hyprland components
 # Try official Void repositories first. If dependency resolution fails,
@@ -255,18 +256,23 @@ xi_install dconf
 # Hyprland plugins via hyprpm (if hyprpm is available)
 if command -v hyprpm &>/dev/null; then
     echo "Updating and loading Hyprland plugin manager..."
-    # hyprpm update clones and builds Hyprland from source to compile plugins;
-    # it needs wayland-protocols-devel, wayland-scanner, and GLES3 headers.
-    $XI wayland-protocols wayland-devel mesa-devel
-    hyprpm update
-    hyprpm reload
+    # hyprpm update clones and builds Hyprland from source to compile plugins.
+    # On Void, GLES/OpenGL and Wayland headers come from these packages.
+    xi_install wayland-devel wayland-protocols MesaLib-devel || true
 
-    echo "Adding Hyprland plugins..."
-    hyprpm add https://github.com/hyprwm/hyprland-plugins || echo "Warning: Failed to add hyprland-plugins"
-    hyprpm add https://github.com/virtcode/hypr-dynamic-cursors || echo "Warning: Failed to add hypr-dynamic-cursors"
-    hyprpm enable dynamic-cursors || echo "Warning: Failed to enable dynamic-cursors"
-    hyprpm add https://github.com/horriblename/hyprgrass || echo "Warning: Failed to add hyprgrass"
-    hyprpm enable hyprgrass || echo "Warning: Failed to enable hyprgrass"
+    if ! hyprpm update; then
+        echo "Warning: hyprpm update failed (plugin build prerequisites may still be missing)."
+        echo "Hyprland itself is installed; skipping plugin operations."
+    else
+        hyprpm reload || true
+
+        echo "Adding Hyprland plugins..."
+        hyprpm add https://github.com/hyprwm/hyprland-plugins || echo "Warning: Failed to add hyprland-plugins"
+        hyprpm add https://github.com/virtcode/hypr-dynamic-cursors || echo "Warning: Failed to add hypr-dynamic-cursors"
+        hyprpm enable dynamic-cursors || echo "Warning: Failed to enable dynamic-cursors"
+        hyprpm add https://github.com/horriblename/hyprgrass || echo "Warning: Failed to add hyprgrass"
+        hyprpm enable hyprgrass || echo "Warning: Failed to enable hyprgrass"
+    fi
 else
     echo "hyprpm not found, skipping plugin install."
 fi
