@@ -41,10 +41,48 @@ enable_service() {
     local service_name="$1"
     if [ -d "/etc/sv/$service_name" ]; then
         sudo ln -sf "/etc/sv/$service_name" /var/service/
-        sudo sv up "$service_name" || true
+        # runsv can take a moment to create supervise/control after linking.
+        # Retry briefly so first-boot service bring-up is more reliable.
+        for _ in 1 2 3 4 5; do
+            if sudo sv up "$service_name" 2>/dev/null; then
+                break
+            fi
+            sleep 1
+        done
     else
         echo "# Skipping missing service: $service_name"
     fi
+}
+
+configure_gdm_for_portrait_touchscreen() {
+    echo "# Configuring GDM for portrait touchscreen (Xorg, 90 deg clockwise)..."
+
+    # Force GDM to Xorg on this hardware; Wayland path is unstable here.
+    sudo mkdir -p /etc/gdm
+    sudo tee /etc/gdm/custom.conf >/dev/null <<'EOF'
+[daemon]
+WaylandEnable=false
+EOF
+
+    # Rotate the built-in display for Xorg sessions (including GDM).
+    sudo mkdir -p /etc/X11/xorg.conf.d
+    sudo tee /etc/X11/xorg.conf.d/10-monitor-rotate.conf >/dev/null <<'EOF'
+Section "Monitor"
+    Identifier "DSI-1"
+    Option "Rotate" "right"
+EndSection
+EOF
+
+    # Map touchscreen coordinates for 90 degree clockwise rotation.
+    # Matrix corresponds to: x' = y, y' = 1 - x
+    sudo tee /etc/X11/xorg.conf.d/40-libinput-touch-rotate.conf >/dev/null <<'EOF'
+Section "InputClass"
+    Identifier "Rotate touchscreen clockwise"
+    MatchIsTouchscreen "on"
+    Driver "libinput"
+    Option "CalibrationMatrix" "0 1 0 -1 0 1 0 0 1"
+EndSection
+EOF
 }
 
 # Create Directories if needed
@@ -105,6 +143,7 @@ enable_service() {
 
 # Enable core services
     echo "# Enabling desktop services..."
+    configure_gdm_for_portrait_touchscreen
     enable_service dbus
     enable_service elogind
     enable_service polkitd
