@@ -133,22 +133,26 @@ EOF
 }
 
 configure_pipewire_session() {
-    sudo mkdir -p /etc/pipewire/pipewire.conf.d
-    sudo ln -snf /usr/share/examples/wireplumber/10-wireplumber.conf \
-        /etc/pipewire/pipewire.conf.d/10-wireplumber.conf
-    sudo ln -snf /usr/share/examples/pipewire/20-pipewire-pulse.conf \
-        /etc/pipewire/pipewire.conf.d/20-pipewire-pulse.conf
-
-    sudo mkdir -p /etc/alsa/conf.d
-    sudo ln -snf /usr/share/alsa/alsa.conf.d/50-pipewire.conf \
-        /etc/alsa/conf.d/50-pipewire.conf
-    sudo ln -snf /usr/share/alsa/alsa.conf.d/99-pipewire-default.conf \
+    sudo rm -f /etc/pipewire/pipewire.conf.d/10-wireplumber.conf \
+        /etc/pipewire/pipewire.conf.d/20-pipewire-pulse.conf \
+        /etc/alsa/conf.d/50-pipewire.conf \
         /etc/alsa/conf.d/99-pipewire-default.conf
 
+    sudo mkdir -p /etc/xdg/autostart
+
     if [ -f /usr/share/applications/pipewire.desktop ]; then
-        sudo mkdir -p /etc/xdg/autostart
         sudo ln -snf /usr/share/applications/pipewire.desktop \
             /etc/xdg/autostart/pipewire.desktop
+    fi
+
+    if [ -f /usr/share/applications/pipewire-pulse.desktop ]; then
+        sudo ln -snf /usr/share/applications/pipewire-pulse.desktop \
+            /etc/xdg/autostart/pipewire-pulse.desktop
+    fi
+
+    if [ -f /usr/share/applications/wireplumber.desktop ]; then
+        sudo ln -snf /usr/share/applications/wireplumber.desktop \
+            /etc/xdg/autostart/wireplumber.desktop
     fi
 }
 
