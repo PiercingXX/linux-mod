@@ -167,6 +167,38 @@ configure_pipewire_session() {
     fi
 }
 
+configure_hyprland_audio_startup() {
+    local target_user target_home execs_file
+    target_user="${REAL_USER:-${USER:-}}"
+
+    if [ -z "$target_user" ]; then
+        return 0
+    fi
+
+    target_home="$(getent passwd "$target_user" | cut -d: -f6)"
+    if [ -z "$target_home" ]; then
+        return 0
+    fi
+
+    execs_file="$target_home/.config/hypr/hyprland/execs.conf"
+    if [ ! -f "$execs_file" ]; then
+        return 0
+    fi
+
+    sudo -u "$target_user" bash -lc '
+set -e
+file="$1"
+
+line1="exec-once = bash -lc '\''pgrep -x pipewire >/dev/null || (pipewire >/tmp/pipewire.log 2>&1 &) '\''"
+line2="exec-once = bash -lc '\''pgrep -x wireplumber >/dev/null || (wireplumber >/tmp/wireplumber.log 2>&1 &) '\''"
+line3="exec-once = bash -lc '\''pgrep -f \"pipewire -c pipewire-pulse.conf\" >/dev/null || (pipewire -c pipewire-pulse.conf >/tmp/pipewire-pulse.log 2>&1 &) '\''"
+
+grep -Fqx "$line1" "$file" || printf "\n%s\n" "$line1" >> "$file"
+grep -Fqx "$line2" "$file" || printf "%s\n" "$line2" >> "$file"
+grep -Fqx "$line3" "$file" || printf "%s\n" "$line3" >> "$file"
+' bash "$execs_file"
+}
+
 get_runit_service_dir() {
     if [ -e /var/service ]; then
         printf '%s\n' /var/service
@@ -320,6 +352,13 @@ xi_install grim
 xi_install slurp
 xi_install cliphist
 
+# Install hyprshot (not in Void repos, install from upstream)
+if ! command -v hyprshot >/dev/null 2>&1; then
+    sudo curl -fsSL https://raw.githubusercontent.com/Gustash/Hyprshot/main/hyprshot \
+        -o /usr/local/bin/hyprshot
+    sudo chmod +x /usr/local/bin/hyprshot
+fi
+
 # Install audio tools
 xi_install pipewire
 xi_install pipewire-pulse
@@ -333,6 +372,7 @@ xi_install wireplumber-elogind
 xi_install playerctl
 xi_install pavucontrol
 configure_pipewire_session
+configure_hyprland_audio_startup
 enable_service alsa
 enable_service rtkit 0
 
