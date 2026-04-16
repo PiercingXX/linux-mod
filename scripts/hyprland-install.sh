@@ -367,8 +367,7 @@ xi_install wlsunset
 xi_install hyprsunset
 xi_install wl-clipboard
 
-# Set up Waybar and menus
-xi_install waybar
+# Set up menus
 xi_install fuzzel
 xi_install wlogout
 xi_install libnotify
