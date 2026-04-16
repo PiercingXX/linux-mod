@@ -384,6 +384,10 @@ xi_install bluetuith
 
 # GUI customization tools
 xi_install nwg-look
+xi_install hyprland-qt-support
+xi_install hyprland-qtutils
+xi_install qt5ct
+xi_install qt6ct
 xi_install dconf
 
 # Hyprland plugins via hyprpm (if hyprpm is available)
