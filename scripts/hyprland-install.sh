@@ -200,7 +200,8 @@ grep -Fqx "$line3" "$file" || printf "%s\n" "$line3" >> "$file"
 }
 
 configure_hyprsunset() {
-    # hyprsunset.conf is deployed via piercing-dots; installer only adds the exec-once autostart
+    # On Void's hyprsunset version, schedule profiles are unreliable.
+    # Use the scheduler script from piercing-dots when available.
     local target_user target_home execs_file
     target_user="${REAL_USER:-${USER:-}}"
 
@@ -219,7 +220,7 @@ configure_hyprsunset() {
         sudo -u "$target_user" bash -lc '
 set -e
 file="$1"
-line="exec-once = bash -lc '\''pgrep -x hyprsunset >/dev/null || hyprsunset'\''"
+line="exec-once = bash -lc '\''~/.scripts/Control-Scripts/hyprsunset-scheduler.sh >/tmp/hyprsunset-scheduler.log 2>&1 &'\''"
 
 grep -Fqx "$line" "$file" || printf "\n%s\n" "$line" >> "$file"
 ' bash "$execs_file"
