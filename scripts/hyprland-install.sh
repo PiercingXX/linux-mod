@@ -191,7 +191,7 @@ file="$1"
 
 line1="exec-once = bash -lc '\''pgrep -x pipewire >/dev/null || (pipewire >/tmp/pipewire.log 2>&1 &) '\''"
 line2="exec-once = bash -lc '\''pgrep -x wireplumber >/dev/null || (wireplumber >/tmp/wireplumber.log 2>&1 &) '\''"
-line3="exec-once = bash -lc '\''pgrep -f \"pipewire -c pipewire-pulse.conf\" >/dev/null || (pipewire -c pipewire-pulse.conf >/tmp/pipewire-pulse.log 2>&1 &) '\''"
+line3="exec-once = bash -lc '\''pgrep -x pipewire-pulse >/dev/null || (pipewire-pulse >/tmp/pipewire-pulse.log 2>&1 &) '\''"
 
 grep -Fqx "$line1" "$file" || printf "\n%s\n" "$line1" >> "$file"
 grep -Fqx "$line2" "$file" || printf "%s\n" "$line2" >> "$file"
