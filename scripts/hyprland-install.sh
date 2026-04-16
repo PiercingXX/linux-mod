@@ -199,6 +199,47 @@ grep -Fqx "$line3" "$file" || printf "%s\n" "$line3" >> "$file"
 ' bash "$execs_file"
 }
 
+configure_hyprsunset() {
+    local target_user target_home execs_file config_dir config_file
+    target_user="${REAL_USER:-${USER:-}}"
+
+    if [ -z "$target_user" ]; then
+        return 0
+    fi
+
+    target_home="$(getent passwd "$target_user" | cut -d: -f6)"
+    if [ -z "$target_home" ]; then
+        return 0
+    fi
+
+    config_dir="$target_home/.config/hypr"
+    config_file="$config_dir/hyprsunset.conf"
+    execs_file="$target_home/.config/hypr/hyprland/execs.conf"
+
+    sudo -u "$target_user" mkdir -p "$config_dir"
+    sudo -u "$target_user" tee "$config_file" >/dev/null <<'EOF'
+profile {
+    time = 04:00
+    identity = true
+}
+
+profile {
+    time = 20:00
+    temperature = 2200
+}
+EOF
+
+    if [ -f "$execs_file" ]; then
+        sudo -u "$target_user" bash -lc '
+set -e
+file="$1"
+line="exec-once = bash -lc '\''pgrep -x hyprsunset >/dev/null || hyprsunset'\''"
+
+grep -Fqx "$line" "$file" || printf "\n%s\n" "$line" >> "$file"
+' bash "$execs_file"
+    fi
+}
+
 get_runit_service_dir() {
     if [ -e /var/service ]; then
         printf '%s\n' /var/service
@@ -337,6 +378,7 @@ sudo chmod +x /usr/local/bin/hypr
 
 # Install additional utilities
 xi_install wlsunset
+xi_install hyprsunset
 xi_install wl-clipboard
 
 # Set up Waybar and menus
@@ -373,6 +415,7 @@ xi_install playerctl
 xi_install pavucontrol
 configure_pipewire_session
 configure_hyprland_audio_startup
+configure_hyprsunset
 enable_service alsa
 enable_service rtkit 0
 
