@@ -220,7 +220,7 @@ configure_hyprsunset() {
         sudo -u "$target_user" bash -lc '
 set -e
 file="$1"
-line="exec-once = bash -lc '\''~/.scripts/Control-Scripts/hyprsunset-scheduler.sh >/tmp/hyprsunset-scheduler.log 2>&1 &'\''"
+line="exec-once = bash -lc '\''pgrep -af \"hyprsunset-scheduler.sh\" >/dev/null || ~/.scripts/Control-Scripts/hyprsunset-scheduler.sh >/tmp/hyprsunset-scheduler.log 2>&1 &'\''"
 
 grep -Fqx "$line" "$file" || printf "\n%s\n" "$line" >> "$file"
 ' bash "$execs_file"
