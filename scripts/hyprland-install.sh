@@ -200,7 +200,8 @@ grep -Fqx "$line3" "$file" || printf "%s\n" "$line3" >> "$file"
 }
 
 configure_hyprsunset() {
-    local target_user target_home execs_file config_dir config_file
+    # hyprsunset.conf is deployed via piercing-dots; installer only adds the exec-once autostart
+    local target_user target_home execs_file
     target_user="${REAL_USER:-${USER:-}}"
 
     if [ -z "$target_user" ]; then
@@ -212,22 +213,7 @@ configure_hyprsunset() {
         return 0
     fi
 
-    config_dir="$target_home/.config/hypr"
-    config_file="$config_dir/hyprsunset.conf"
     execs_file="$target_home/.config/hypr/hyprland/execs.conf"
-
-    sudo -u "$target_user" mkdir -p "$config_dir"
-    sudo -u "$target_user" tee "$config_file" >/dev/null <<'EOF'
-profile {
-    time = 04:00
-    identity = true
-}
-
-profile {
-    time = 20:00
-    temperature = 2200
-}
-EOF
 
     if [ -f "$execs_file" ]; then
         sudo -u "$target_user" bash -lc '
