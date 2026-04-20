@@ -7,6 +7,9 @@ XI="sudo xbps-install -y"
 REAL_USER="${SUDO_USER:-${USER:-}}"
 HYPR_SOURCE_FALLBACK="${HYPR_SOURCE_FALLBACK:-1}"
 VOID_FORCE_DEFAULT_MIRROR="${VOID_FORCE_DEFAULT_MIRROR:-1}"
+HYPRSUNSET_PINNED_HYPRUTILS="${HYPRSUNSET_PINNED_HYPRUTILS:-hyprutils-0.7.1_1}"
+HYPRSUNSET_PINNED_HYPRLANG="${HYPRSUNSET_PINNED_HYPRLANG:-hyprlang-0.6.3_1}"
+HYPRSUNSET_PINNED_PACKAGE="${HYPRSUNSET_PINNED_PACKAGE:-hyprsunset-0.2.0_1}"
 
 setup_void_default_mirror() {
     local libc
@@ -57,6 +60,94 @@ xi_install() {
     fi
 }
 
+# Package guard helpers — same semantics as step-1.sh.
+# xi_install_safe: check installed → check available → install; never aborts.
+# Use this for optional utilities that may be absent from some mirrors.
+pkg_installed() {
+    xbps-query -l 2>/dev/null | grep -q "^ii ${1}-"
+}
+
+pkg_available() {
+    xbps-query -Rs "^${1}$" 2>/dev/null | grep -q "^\\[[-*]\\] ${1}-"
+}
+
+xi_install_safe() {
+    local pkg
+    for pkg in "$@"; do
+        if pkg_installed "$pkg"; then
+            echo "# [skip] ${pkg} already installed"
+            continue
+        fi
+        if ! pkg_available "$pkg"; then
+            echo "# [warn] ${pkg} not found in current repos — skipping"
+            continue
+        fi
+        if ! $XI "$pkg"; then
+            echo "# [warn] ${pkg} install failed — continuing"
+        fi
+    done
+}
+
+xi_install_optional() {
+    if ! xi_install "$@"; then
+        echo "Warning: optional package install failed: $*"
+        return 1
+    fi
+}
+
+installed_pkgver() {
+    xbps-query -p pkgver "$1" 2>/dev/null | sed 's/^pkgver: //'
+}
+
+remove_hyprsunset_stack() {
+    sudo xbps-remove -Fy hyprsunset hyprlang hyprutils 2>/dev/null || true
+}
+
+hyprsunset_pinned_stack_installed() {
+    [ "$(installed_pkgver hyprutils)" = "${HYPRSUNSET_PINNED_HYPRUTILS#hyprutils-}" ] && \
+    [ "$(installed_pkgver hyprlang)" = "${HYPRSUNSET_PINNED_HYPRLANG#hyprlang-}" ] && \
+    [ "$(installed_pkgver hyprsunset)" = "${HYPRSUNSET_PINNED_PACKAGE#hyprsunset-}" ]
+}
+
+install_pinned_hyprsunset_stack() {
+    echo "Installing pinned hyprsunset compatibility stack from hyprland-void repository..."
+    setup_hyprland_repo
+    sudo xbps-install -S
+    remove_hyprsunset_stack
+    sudo xbps-install -yf \
+        "$HYPRSUNSET_PINNED_HYPRUTILS" \
+        "$HYPRSUNSET_PINNED_HYPRLANG" \
+        "$HYPRSUNSET_PINNED_PACKAGE"
+}
+
+install_hyprsunset_with_fallback() {
+    if command -v hyprsunset >/dev/null 2>&1 && hyprsunset_pinned_stack_installed; then
+        echo "Pinned hyprsunset compatibility stack already installed."
+        return 0
+    fi
+
+    if xi_install hyprsunset; then
+        return 0
+    fi
+
+    echo "hyprsunset install failed from current repos; trying pinned compatibility fallback..."
+
+    if install_pinned_hyprsunset_stack; then
+        return 0
+    fi
+
+    echo "Pinned hyprsunset compatibility install failed."
+    if [ "$HYPR_SOURCE_FALLBACK" = "1" ]; then
+        echo "Falling back to source build for Hyprland stack including hyprsunset..."
+        install_hyprland_from_source
+        command -v hyprsunset >/dev/null 2>&1
+        return
+    fi
+
+    echo "hyprsunset remains unresolved and source fallback is disabled." >&2
+    return 1
+}
+
 install_hyprland_from_source() {
     local build_root
     build_root="/tmp/hyprland-void-build"
@@ -105,12 +196,12 @@ install_hyprland_from_source() {
         cd "$build_root/void-packages"
         ./xbps-src pkg \
             hyprutils hyprlang hyprgraphics hyprwayland-scanner aquamarine \
-            hyprland hyprpaper hyprlock hypridle hyprcursor xdg-desktop-portal-hyprland
+            hyprland hyprpaper hyprlock hypridle hyprcursor hyprsunset xdg-desktop-portal-hyprland
     )
 
     sudo xbps-install -yR "$build_root/void-packages/hostdir/binpkgs" \
         hyprutils hyprlang hyprgraphics hyprwayland-scanner aquamarine \
-        hyprland hyprpaper hyprlock hypridle hyprcursor xdg-desktop-portal-hyprland
+        hyprland hyprpaper hyprlock hypridle hyprcursor hyprsunset xdg-desktop-portal-hyprland
 }
 
 hypr_repo_url() {
@@ -364,21 +455,21 @@ EOF
 sudo chmod +x /usr/local/bin/hypr
 
 # Install additional utilities
-xi_install wlsunset
-xi_install hyprsunset
+xi_install_safe wlsunset
+install_hyprsunset_with_fallback
 xi_install wl-clipboard
 
-# Set up menus
-xi_install fuzzel
-xi_install wlogout
+# Set up menus — use xi_install_safe for utilities that may lag on some mirrors
+xi_install_safe fuzzel
+xi_install_safe wlogout
 xi_install libnotify
-xi_install dunst
-xi_install brightnessctl
+xi_install_safe dunst
+xi_install_safe brightnessctl
 
 # Add screenshot and clipboard utilities
-xi_install grim
-xi_install slurp
-xi_install cliphist
+xi_install_safe grim
+xi_install_safe slurp
+xi_install_safe cliphist
 
 # Install hyprshot (not in Void repos, install from upstream)
 if ! command -v hyprshot >/dev/null 2>&1; then
@@ -388,13 +479,14 @@ if ! command -v hyprshot >/dev/null 2>&1; then
 fi
 
 # Install audio tools
+# pipewire-pulse is the ALSA-compat shim — absent on some mirrors; core session still works.
 xi_install pipewire
-xi_install pipewire-pulse
+xi_install_safe pipewire-pulse
 xi_install alsa-pipewire
 xi_install alsa-utils
 xi_install rtkit
 xi_install pamixer
-xi_install cava
+xi_install_safe cava
 xi_install wireplumber
 xi_install wireplumber-elogind
 xi_install playerctl
@@ -409,14 +501,14 @@ enable_service rtkit 0
 xi_install NetworkManager
 xi_install network-manager-applet
 xi_install bluez
-xi_install bluetuith
+xi_install_safe bluetuith
 
 # GUI customization tools
-xi_install nwg-look
-xi_install hyprland-qt-support
-xi_install hyprland-qtutils
-xi_install qt5ct
-xi_install qt6ct
+xi_install_safe nwg-look
+xi_install_safe hyprland-qt-support
+xi_install_safe hyprland-qtutils
+xi_install_safe qt5ct
+xi_install_safe qt6ct
 xi_install dconf
 
 # Hyprland plugins via hyprpm (if hyprpm is available)

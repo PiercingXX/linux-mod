@@ -59,12 +59,75 @@ ensure_network_online() {
 
 enable_service() {
     local service_name="$1"
-    if [ -d "/etc/sv/$service_name" ]; then
-        sudo ln -sf "/etc/sv/$service_name" /var/service/
-        sudo sv up "$service_name" || true
-    else
+    local required="${2:-0}"
+    local service_dir
+
+    if [ ! -d "/etc/sv/$service_name" ]; then
         echo "Skipping missing service: $service_name"
+        if [ "$required" -eq 1 ]; then
+            return 1
+        fi
+        return 0
     fi
+
+    if [ -e /var/service ]; then
+        service_dir="/var/service"
+    elif [ -d /etc/runit/runsvdir/current ]; then
+        service_dir="/etc/runit/runsvdir/current"
+    elif [ -d /etc/runit/runsvdir/default ]; then
+        service_dir="/etc/runit/runsvdir/default"
+    else
+        echo "Unable to determine runit service directory for: $service_name"
+        if [ "$required" -eq 1 ]; then
+            return 1
+        fi
+        return 0
+    fi
+
+    sudo mkdir -p "$service_dir"
+    sudo rm -f "$service_dir/$service_name"
+    sudo ln -s "/etc/sv/$service_name" "$service_dir/$service_name"
+    sudo sv up "$service_name" >/dev/null 2>&1 || true
+}
+
+install_safe_launcher_helpers() {
+    sudo tee /usr/local/bin/gnome-wayland >/dev/null <<'EOF'
+#!/bin/sh
+if ! command -v gnome-session >/dev/null 2>&1; then
+    echo "gnome-session is not installed. Re-run the base installer or install GNOME packages first." >&2
+    exit 127
+fi
+
+exec env XDG_SESSION_TYPE=wayland XDG_RUNTIME_DIR="/run/user/$(id -u)" dbus-run-session gnome-session "$@"
+EOF
+    sudo chmod +x /usr/local/bin/gnome-wayland
+
+    sudo tee /usr/local/bin/gnome-x11 >/dev/null <<'EOF'
+#!/bin/sh
+if ! command -v gnome-session >/dev/null 2>&1; then
+    echo "gnome-session is not installed. Re-run the base installer or install GNOME packages first." >&2
+    exit 127
+fi
+
+if ! command -v startx >/dev/null 2>&1; then
+    echo "startx is not installed. Install xinit before launching GNOME X11." >&2
+    exit 127
+fi
+
+exec dbus-run-session startx /usr/bin/gnome-session -- "$@"
+EOF
+    sudo chmod +x /usr/local/bin/gnome-x11
+
+    sudo tee /usr/local/bin/hypr >/dev/null <<'EOF'
+#!/bin/sh
+if command -v start-hyprland >/dev/null 2>&1; then
+    exec start-hyprland "$@"
+fi
+
+echo "start-hyprland is not installed. Install Hyprland from the Optional Window Managers menu first." >&2
+exit 127
+EOF
+    sudo chmod +x /usr/local/bin/hypr
 }
 
 
@@ -198,6 +261,7 @@ while true; do
                 cp -f piercing-dots/resources/bash/.bashrc /home/"$username"/.bashrc
                 # shellcheck disable=SC1090
                 source "/home/$username/.bashrc"
+                install_safe_launcher_helpers
                 rm -rf piercing-dots
             # Install Printers
                 chmod u+x scripts/install-printers.sh
@@ -205,7 +269,11 @@ while true; do
                 wait
                 cd "$builddir" || exit
             prompt_install_window_managers_after_install
-            msg_box "System will reboot now."
+            if [ "${VOID_INSTALL_GDM:-0}" = "1" ]; then
+                msg_box "System will reboot now. GDM was enabled for graphical login."
+            else
+                msg_box "System will reboot now. GDM is off by default; use gnome-wayland, gnome-x11, or install an optional window manager after reboot."
+            fi
             sudo reboot
             ;;
         "Install Optional Window Managers")

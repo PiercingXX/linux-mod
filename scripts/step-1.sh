@@ -6,20 +6,61 @@ set -euo pipefail
 trap 'echo "# Installer failed at line ${LINENO}: ${BASH_COMMAND}" >&2' ERR
 
 YELLOW='\033[1;33m'
-BLUE='\033[1;34m'
 NC='\033[0m'
 
 username=$(id -u -n 1000)
 builddir=$(pwd)
+VOID_INSTALL_GDM="${VOID_INSTALL_GDM:-0}"
 
 # xbps helper — install only (sync is handled by system update)
 XI="sudo xbps-install -y"
+
+# Package guard helpers — exact patterns required by installer spec.
+#
+# pkg_installed: xbps-query -l reports installed packages as "ii <name>-<ver>".
+#   Greps for "^ii <pkg>-" to avoid false-matches (e.g. "foo-bar" matching "foo").
+# pkg_available: xbps-query -Rs searches remote repo index by POSIX regex.
+#   "^<pkg>$" matches the package name exactly; output line starts with [*] or [-].
+# xi_install_safe: per-package loop — skip already-installed, warn if not in repos,
+#   install and warn on failure; never aborts the calling script.
+
+pkg_installed() {
+    xbps-query -l 2>/dev/null | grep -q "^ii ${1}-"
+}
+
+pkg_available() {
+    xbps-query -Rs "^${1}$" 2>/dev/null | grep -q "^\\[[-*]\\] ${1}-"
+}
+
+xi_install_safe() {
+    local pkg
+    for pkg in "$@"; do
+        if pkg_installed "$pkg"; then
+            echo "# [skip] ${pkg} already installed"
+            continue
+        fi
+        if ! pkg_available "$pkg"; then
+            echo "# [warn] ${pkg} not found in current repos — skipping"
+            continue
+        fi
+        if ! $XI "$pkg"; then
+            echo "# [warn] ${pkg} install failed — continuing"
+        fi
+    done
+}
+
+install_optional_packages() {
+    local package_name
+    for package_name in "$@"; do
+        xi_install_safe "$package_name"
+    done
+}
 
 disable_hyprland_fallback_repo() {
     local repo_conf="/etc/xbps.d/hyprland-void.conf"
     local hypr_pkgs=(
         aquamarine hyprcursor hyprgraphics hypridle hyprland hyprlang
-        hyprlock hyprpaper hyprutils hyprwayland-scanner
+        hyprlock hyprpaper hyprutils hyprwayland-scanner hyprsunset
         xdg-desktop-portal-hyprland
     )
 
@@ -156,6 +197,48 @@ configure_pipewire_session() {
     fi
 }
 
+install_launcher_helpers() {
+    echo "# Creating desktop launch wrappers..."
+
+    sudo tee /usr/local/bin/gnome-wayland >/dev/null <<'EOF'
+#!/bin/sh
+if ! command -v gnome-session >/dev/null 2>&1; then
+    echo "gnome-session is not installed. Re-run the base installer or install GNOME packages first." >&2
+    exit 127
+fi
+
+exec env XDG_SESSION_TYPE=wayland XDG_RUNTIME_DIR="/run/user/$(id -u)" dbus-run-session gnome-session "$@"
+EOF
+    sudo chmod +x /usr/local/bin/gnome-wayland
+
+    sudo tee /usr/local/bin/gnome-x11 >/dev/null <<'EOF'
+#!/bin/sh
+if ! command -v gnome-session >/dev/null 2>&1; then
+    echo "gnome-session is not installed. Re-run the base installer or install GNOME packages first." >&2
+    exit 127
+fi
+
+if ! command -v startx >/dev/null 2>&1; then
+    echo "startx is not installed. Install xinit before launching GNOME X11." >&2
+    exit 127
+fi
+
+exec dbus-run-session startx /usr/bin/gnome-session -- "$@"
+EOF
+    sudo chmod +x /usr/local/bin/gnome-x11
+
+    sudo tee /usr/local/bin/hypr >/dev/null <<'EOF'
+#!/bin/sh
+if command -v start-hyprland >/dev/null 2>&1; then
+    exec start-hyprland "$@"
+fi
+
+echo "start-hyprland is not installed. Install Hyprland from the Optional Window Managers menu first." >&2
+exit 127
+EOF
+    sudo chmod +x /usr/local/bin/hypr
+}
+
 # Create Directories if needed
     echo -e "${YELLOW}Creating Necessary Directories...${NC}"
         # font directory
@@ -180,42 +263,60 @@ configure_pipewire_session() {
 
 # System Update
     disable_hyprland_fallback_repo
-    sudo xbps-install -Suv
-    sudo xbps-install -Rs -y void-repo-nonfree
+    # Run system update; if xbps still sees a broken shlib from a previous hyprland-void
+    # install that survived the cleanup above, the transaction would abort with -euo pipefail.
+    # Use || true so a dirty-state upgrade failure is reported but does not kill the script.
+    sudo xbps-install -Suv || {
+        echo "# [warn] xbps -Suv exited non-zero (may indicate a residual broken dependency)."
+        echo "# Attempting targeted self-update and index refresh before continuing..."
+        sudo xbps-install -Suv xbps 2>/dev/null || true
+        sudo xbps-install -S || true
+    }
+    sudo xbps-install -y void-repo-nonfree 2>/dev/null || true
+    sudo xbps-install -S
 
 # Install core dependencies (deduped)
     echo "# Installing dependencies..."
-    $XI curl wget git xz unzip zip nano vim gptfdisk xtools mtools mlocate ntfs-3g fuse-exfat
-    $XI bash-completion linux-headers gtksourceview4 ffmpeg mesa mesa-dri mesa-vdpau mesa-vaapi
-    $XI autoconf automake bison m4 make libtool flex meson ninja optipng sassc cmake cpio
-    $XI trash-cli fastfetch tree zoxide starship eza bat fzf chafa w3m fontconfig
-    $XI base-devel gcc linux-firmware iw tmux sshpass htop multitail bluetuith dconf fwupd kitty
-    $XI python3 nodejs npm lnav ulauncher nvtop wmctrl xdotool libinput
-    $XI xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-wlr xdg-user-dirs xdg-user-dirs-gtk xdg-utils
-    $XI dbus elogind polkit gnome-browser-connector
+    xi_install_safe curl wget git xz unzip zip nano vim gptfdisk xtools mtools mlocate ntfs-3g fuse-exfat
+    xi_install_safe bash-completion linux-headers gtksourceview4 ffmpeg mesa mesa-dri mesa-vdpau mesa-vaapi
+    xi_install_safe autoconf automake bison m4 make libtool flex meson ninja optipng sassc cmake cpio
+    xi_install_safe trash-cli fastfetch tree zoxide starship eza bat fzf chafa w3m fontconfig
+    xi_install_safe base-devel gcc linux-firmware iw tmux sshpass htop multitail bluetuith dconf fwupd kitty
+    xi_install_safe python3 nodejs npm lnav ulauncher nvtop wmctrl xdotool libinput
+    xi_install_safe xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-wlr xdg-user-dirs xdg-user-dirs-gtk xdg-utils
+    xi_install_safe dbus elogind polkit gnome-browser-connector
 
 # GNOME stack
     echo "# Installing GNOME..."
-    $XI xorg xorg-server-xwayland xinit xauth xterm twm
-    $XI gnome gdm gnome-session gnome-shell gnome-disk-utility gnome-calculator seahorse gnome-keyring gnome-shell-extensions gnome-sushi
+    xi_install_safe xorg xorg-server-xwayland xinit xauth xterm twm
+    xi_install_safe gnome gnome-session gnome-shell gnome-keyring
+    install_optional_packages gnome-disk-utility gnome-calculator seahorse gnome-shell-extensions
+    if [ "$VOID_INSTALL_GDM" = "1" ]; then
+        xi_install_safe gdm
+    else
+        echo "# VOID_INSTALL_GDM is not enabled; skipping GDM install."
+    fi
 
 # Networking, audio, Bluetooth, power
-    $XI NetworkManager NetworkManager-openvpn NetworkManager-openconnect NetworkManager-vpnc NetworkManager-l2tp network-manager-applet wpa_supplicant
-    $XI pipewire pipewire-pulse alsa-pipewire alsa-utils wireplumber wireplumber-elogind playerctl pavucontrol pamixer cava pulseaudio-utils pulsemixer rtkit
-    $XI bluez cronie tlp tlp-rdw powertop
+    xi_install_safe NetworkManager NetworkManager-openvpn NetworkManager-openconnect NetworkManager-vpnc NetworkManager-l2tp network-manager-applet wpa_supplicant
+    # pipewire-pulse is optional — absent in some Void mirrors; core PipeWire session still works
+    xi_install_safe pipewire alsa-pipewire alsa-utils wireplumber wireplumber-elogind playerctl pavucontrol pamixer cava pulseaudio-utils pulsemixer rtkit
+    xi_install_safe pipewire-pulse
+    xi_install_safe bluez cronie tlp tlp-rdw powertop
 
 # Wayland / compositor utilities
-    $XI wl-clipboard waybar fuzzel wlogout libnotify dunst brightnessctl nwg-look
+    # waybar is occasionally absent from tier-2 mirrors; install individually so one failure
+    # does not abort the rest of the Wayland toolkit.
+    xi_install_safe wl-clipboard waybar fuzzel wlogout libnotify dunst brightnessctl nwg-look
 
 # Fonts and font config
-    $XI noto-fonts-emoji noto-fonts-ttf noto-fonts-ttf-extra
+    xi_install_safe noto-fonts-emoji noto-fonts-ttf noto-fonts-ttf-extra
     sudo ln -sf /usr/share/fontconfig/conf.avail/70-no-bitmaps.conf /etc/fonts/conf.d/
     sudo xbps-reconfigure -f fontconfig
     configure_pipewire_session
 
 # Enable core services
     echo "# Enabling desktop services..."
-    configure_gdm_for_portrait_touchscreen
     enable_service dbus
     enable_service elogind
     enable_service polkitd
@@ -225,46 +326,34 @@ configure_pipewire_session() {
     enable_service tlp
     enable_service alsa
     enable_service rtkit 0
-    enable_service gdm
+
+    if [ "$VOID_INSTALL_GDM" = "1" ]; then
+        configure_gdm_for_portrait_touchscreen
+        enable_service gdm
+    else
+        echo "# GDM disabled by default. Set VOID_INSTALL_GDM=1 to install and enable it."
+    fi
 
     sudo usermod -aG bluetooth "$username" || true
 
-# Desktop launch wrappers for consistent commands from TTY
-    echo "# Creating desktop launch wrappers..."
-    sudo tee /usr/local/bin/gnome-wayland >/dev/null <<'EOF'
-#!/bin/sh
-exec env XDG_SESSION_TYPE=wayland XDG_RUNTIME_DIR="/run/user/$(id -u)" dbus-run-session gnome-session "$@"
-EOF
-    sudo chmod +x /usr/local/bin/gnome-wayland
-
-    sudo tee /usr/local/bin/gnome-x11 >/dev/null <<'EOF'
-#!/bin/sh
-exec dbus-run-session startx /usr/bin/gnome-session -- "$@"
-EOF
-    sudo chmod +x /usr/local/bin/gnome-x11
-
-    sudo tee /usr/local/bin/hypr >/dev/null <<'EOF'
-#!/bin/sh
-if command -v start-hyprland >/dev/null 2>&1; then
-    exec start-hyprland "$@"
-fi
-echo "start-hyprland not found. Install Hyprland from the Optional Window Managers menu." >&2
-exit 127
-EOF
-    sudo chmod +x /usr/local/bin/hypr
+    install_launcher_helpers
 
 # Flatpak
     echo -e "${YELLOW}Installing Flatpak & adding Flathub...${NC}"
-    $XI flatpak
-    sudo flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-    sudo flatpak install --system flathub net.waterfox.waterfox -y
-    sudo flatpak install --system flathub md.obsidian.Obsidian -y
-    sudo flatpak install --system flathub org.libreoffice.LibreOffice -y
-    sudo flatpak install --system flathub org.qbittorrent.qBittorrent -y
-    sudo flatpak install --system flathub io.missioncenter.MissionCenter -y
-    sudo flatpak install --system flathub com.synology.SynologyDrive -y
-    sudo flatpak install --system flathub io.github.shiftey.Desktop -y # Github Desktop
-    sudo flatpak install --system flathub com.mattjakeman.ExtensionManager -y
+    xi_install_safe flatpak
+    if command -v flatpak >/dev/null 2>&1; then
+        sudo flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+        sudo flatpak install --system flathub net.waterfox.waterfox -y
+        sudo flatpak install --system flathub md.obsidian.Obsidian -y
+        sudo flatpak install --system flathub org.libreoffice.LibreOffice -y
+        sudo flatpak install --system flathub org.qbittorrent.qBittorrent -y
+        sudo flatpak install --system flathub io.missioncenter.MissionCenter -y
+        sudo flatpak install --system flathub com.synology.SynologyDrive -y
+        sudo flatpak install --system flathub io.github.shiftey.Desktop -y # Github Desktop
+        sudo flatpak install --system flathub com.mattjakeman.ExtensionManager -y
+    else
+        echo "# [warn] flatpak not available; skipping Flathub app installs"
+    fi
 
 # VS Code (native install)
     echo "# Installing VS Code natively..."
@@ -293,71 +382,65 @@ EOF
     fi
 
 # Firewall
-    $XI ufw
-    sudo ufw allow OpenSSH
-    enable_service ufw 0
+    xi_install_safe ufw
+    if command -v ufw >/dev/null 2>&1; then
+        sudo ufw allow OpenSSH
+        enable_service ufw 0
+    fi
 
 # Yazi
-    $XI yazi
-    $XI 7zip
-    $XI jq
-    $XI poppler
-    $XI fd
-    $XI ripgrep
-    $XI ImageMagick
-    command -v yazi >/dev/null 2>&1 || {
-        echo "# Yazi install appears to have failed; check xbps output above."
-        exit 1
-    }
-    command -v ya >/dev/null 2>&1 || {
-        echo "# Yazi package installed but 'ya' is missing; skipping Yazi plugin install."
-        exit 1
-    }
-    ya pkg add dedukun/bookmarks
-    ya pkg add yazi-rs/plugins:mount
-    ya pkg add dedukun/relative-motions
-    ya pkg add yazi-rs/plugins:chmod
-    ya pkg add yazi-rs/plugins:smart-enter
-    ya pkg add AnirudhG07/rich-preview
-    ya pkg add grappas/wl-clipboard
-    ya pkg add Rolv-Apneseth/starship
-    ya pkg add yazi-rs/plugins:full-border
-    ya pkg add uhs-robert/recycle-bin
-    ya pkg add yazi-rs/plugins:diff
+    xi_install_safe yazi 7zip jq poppler fd ripgrep ImageMagick
+    if command -v yazi >/dev/null 2>&1 && command -v ya >/dev/null 2>&1; then
+        ya pkg add dedukun/bookmarks
+        ya pkg add yazi-rs/plugins:mount
+        ya pkg add dedukun/relative-motions
+        ya pkg add yazi-rs/plugins:chmod
+        ya pkg add yazi-rs/plugins:smart-enter
+        ya pkg add AnirudhG07/rich-preview
+        ya pkg add grappas/wl-clipboard
+        ya pkg add Rolv-Apneseth/starship
+        ya pkg add yazi-rs/plugins:full-border
+        ya pkg add uhs-robert/recycle-bin
+        ya pkg add yazi-rs/plugins:diff
+    else
+        echo "# [warn] yazi or 'ya' not available; skipping Yazi plugin install"
+    fi
 
 # Apps to remove
     sudo xbps-remove -Ry firefox 2>/dev/null || true
     sudo xbps-remove -Ry epiphany 2>/dev/null || true
 
 # Tailscale
-    $XI tailscale
-    enable_service tailscaled
+    xi_install_safe tailscale
+    if pkg_installed tailscale; then
+        enable_service tailscaled
+    fi
 
 # Theme stuffs
-    $XI papirus-icon-theme
+    xi_install_safe papirus-icon-theme
 
 # Install fonts
     echo "Installing Fonts"
     cd "$builddir" || exit
-    $XI font-firacode-nerd
-    $XI font-jetbrains-mono-nerd
-    $XI noto-fonts-emoji
-    $XI terminus-font
+    xi_install_safe font-firacode-nerd font-jetbrains-mono-nerd noto-fonts-emoji terminus-font
     # Reload Font
     fc-cache -vf
-    wait
 
 # OpenSSH
     echo "# Enabling OpenSSH Service..."
-    $XI openssh
-    enable_service sshd
+    xi_install_safe openssh
+    if pkg_installed openssh; then
+        enable_service sshd
+    fi
 
 # System Control Services
     echo "# Enabling Audio, Bluetooth, WiFi and CUPS services..."
     # Enable Audio
         enable_service alsa
     # Enable Printer
-        $XI cups gutenprint cups-pk-helper nmap net-tools
-        enable_service cupsd
+        xi_install_safe cups gutenprint cups-pk-helper nmap net-tools
+        if pkg_installed cups; then
+            enable_service cupsd
+        fi
     # Add dialout group for ZMK / VIA keyboards
         sudo usermod -aG uucp "$USER"

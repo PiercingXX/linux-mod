@@ -34,6 +34,35 @@ chmod -R u+x scripts/
 Run `./void-mod.sh` and follow the prompts.  
 Options include minimal system install, window manager install, persistent TTY rotation, and reboot.
 
+GDM is optional and disabled by default. To install and enable it during the base flow, run:
+
+```bash
+VOID_INSTALL_GDM=1 ./void-mod.sh
+```
+
+
+
+## ⚙️ Environment Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `VOID_INSTALL_GDM` | `0` | Set to `1` to install and enable GDM (display manager). Default: launch GNOME via `gnome-wayland` or `gnome-x11` wrappers. |
+| `VOID_FORCE_DEFAULT_MIRROR` | `1` | Set to `0` to skip reconfiguring the xbps repo to `repo-default.voidlinux.org` before the Hyprland install. |
+| `HYPR_SOURCE_FALLBACK` | `1` | Set to `0` to disable the source-build fallback in `hyprland-install.sh` when binary packages fail. |
+| `HYPRSUNSET_PINNED_HYPRUTILS` | `hyprutils-0.7.1_1` | Override the pinned hyprutils version used for the hyprsunset ABI compatibility stack. |
+| `HYPRSUNSET_PINNED_HYPRLANG` | `hyprlang-0.6.3_1` | Override the pinned hyprlang version. |
+| `HYPRSUNSET_PINNED_PACKAGE` | `hyprsunset-0.2.0_1` | Override the pinned hyprsunset version. |
+
+### Package availability behaviour
+
+Both `step-1.sh` and `hyprland-install.sh` use mirror-tolerant install helpers:
+
+- **`pkg_installed`** — checks `xbps-query -l` for `^ii <pkg>-` before installing; already-installed packages are skipped instantly on reruns.
+- **`pkg_available`** — checks `xbps-query -Rs "^<pkg>$"` before any install attempt; packages absent from the current repo index are skipped with a `[warn]` line instead of aborting the script.
+- **`xi_install_safe`** — wraps both checks; used for all optional/semi-optional packages (`waybar`, `pipewire-pulse`, `cava`, `bluetuith`, Hyprland Qt extras, etc.).
+
+Required packages that anchor a fallback chain (e.g. `hyprland` core, `mesa`, `dbus`) still use the retrying `xi_install` helper so mirror-sync failures trigger an index refresh and retry rather than a silent skip.
+
 
 
 ## 🔧 Scripts
