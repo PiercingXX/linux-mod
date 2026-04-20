@@ -458,6 +458,8 @@ sudo chmod +x /usr/local/bin/hypr
 xi_install_safe wlsunset
 install_hyprsunset_with_fallback
 xi_install wl-clipboard
+xi_install xdg-user-dirs xdg-utils xdg-desktop-portal xdg-desktop-portal-gtk
+xi_install gum kitty neovim jq yazi nautilus gnome-keyring
 
 # Set up menus — use xi_install_safe for utilities that may lag on some mirrors
 xi_install_safe fuzzel
@@ -465,6 +467,7 @@ xi_install_safe wlogout
 xi_install libnotify
 xi_install_safe dunst
 xi_install_safe brightnessctl
+xi_install_safe easyeffects
 
 # Add screenshot and clipboard utilities
 xi_install_safe grim
@@ -502,6 +505,8 @@ xi_install NetworkManager
 xi_install network-manager-applet
 xi_install bluez
 xi_install_safe bluetuith
+enable_service NetworkManager
+enable_service bluetoothd 0
 
 # GUI customization tools
 xi_install_safe nwg-look
