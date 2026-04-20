@@ -91,6 +91,7 @@ function menu() {
         "Window Managers"
         "Optional Nvidia Drivers"
         "Optional Surface Kernel"
+        "Rotate TTY Clockwise"
         "Reboot System"
         "Exit"
     )
@@ -267,6 +268,13 @@ while true; do
                 sudo ./scripts/surface-kernel-setup.sh
                 cd "$builddir" || exit
                 echo -e "${GREEN}Microsoft Kernel Installed.!${NC}"
+            ;;
+        "Rotate TTY Clockwise")
+            echo -e "${YELLOW}Rotating TTY 90 degrees clockwise and persisting in GRUB...${NC}"
+                chmod +x scripts/rotate-tty-clockwise.sh
+                sudo ./scripts/rotate-tty-clockwise.sh
+                cd "$builddir" || exit
+                echo -e "${GREEN}TTY rotation applied. Reboot for full effect.${NC}"
             ;;
         "Reboot System")
             echo -e "${YELLOW}Rebooting system in 3 seconds...${NC}"
