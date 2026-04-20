@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euo pipefail
+set -uo pipefail
 
 if [ "${EUID}" -ne 0 ]; then
     echo "Please run as root (sudo)." >&2
