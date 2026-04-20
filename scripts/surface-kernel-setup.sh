@@ -3,7 +3,7 @@
 # Automated setup script for Microsoft Surface kernel on Artix Linux
 # This script must be run as root or with sudo
 
-set -euo pipefail
+set -uo pipefail
 
 if [[ $EUID -ne 0 ]]; then
     echo "This script must be run as root." >&2

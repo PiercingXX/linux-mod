@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -uo pipefail
 
 # shellcheck source=service-manager.sh
 . "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/service-manager.sh"
