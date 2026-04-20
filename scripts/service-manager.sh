@@ -178,3 +178,49 @@ is_service_enabled() {
 restart_user_services() {
     return 0
 }
+
+install_init_service_package_if_available() {
+    if [ "$#" -lt 1 ]; then
+        return 1
+    fi
+
+    local pkg="$1"
+
+    if ! command -v pacman >/dev/null 2>&1; then
+        return 1
+    fi
+
+    if pacman -Si "$pkg" >/dev/null 2>&1; then
+        sudo pacman -S --needed --noconfirm "$pkg" >/dev/null 2>&1
+        return $?
+    fi
+
+    return 1
+}
+
+ensure_ly_service_support() {
+    local init
+    init="$(detect_init_system)"
+
+    case "$init" in
+        openrc)
+            install_init_service_package_if_available ly-openrc >/dev/null 2>&1 || true
+            ;;
+        runit)
+            install_init_service_package_if_available ly-runit >/dev/null 2>&1 || true
+            ;;
+        dinit)
+            install_init_service_package_if_available ly-dinit >/dev/null 2>&1 || true
+            ;;
+    esac
+}
+
+enable_ly_service() {
+    if enable_and_start_service ly ly-dm; then
+        return 0
+    fi
+
+    ensure_ly_service_support
+
+    enable_and_start_service ly ly-dm
+}

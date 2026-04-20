@@ -15,8 +15,9 @@ if ! disable_and_stop_service gdm lightdm sddm lxdm xdm; then
 fi
 
 echo "Enabling ly..."
-if ! enable_and_start_service ly; then
+if ! enable_ly_service; then
     echo "Error: Could not enable/start ly service on this init system."
+    echo "Tip: verify the init-specific Ly service package (ly-openrc/ly-runit/ly-dinit) exists in your repos."
     exit 1
 fi
 

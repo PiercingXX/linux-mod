@@ -127,7 +127,7 @@ configure_default_display_manager() {
     # Stop and disable common alternatives so ly is the only active display manager.
     disable_and_stop_service lightdm sddm gdm lxdm xdm >/dev/null 2>&1 || true
 
-    if enable_and_start_service ly; then
+    if enable_ly_service; then
         echo -e "${GREEN}ly is now enabled as the default login manager.${NC}"
     else
         echo "Warning: Could not enable/start ly service automatically on this init system."

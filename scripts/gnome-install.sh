@@ -37,7 +37,7 @@ if ! enable_and_start_service NetworkManager networkmanager; then
     echo "Warning: Could not start/enable NetworkManager service on this init system."
 fi
 
-if ! enable_and_start_service ly; then
+if ! enable_ly_service; then
     echo "Warning: Could not start/enable ly service on this init system."
 else
     echo "ly enabled as the default login manager."
