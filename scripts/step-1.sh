@@ -223,7 +223,7 @@ configure_pipewire_session() {
     xi_install curl wget git xz unzip zip nano vim gptfdisk xtools mtools mlocate ntfs-3g fuse-exfat
     xi_install bash-completion linux-headers gtksourceview4 ffmpeg mesa mesa-dri mesa-vdpau mesa-vaapi
     xi_install autoconf automake bison m4 make libtool flex meson ninja optipng sassc cmake cpio
-    xi_install trash-cli fastfetch tree zoxide starship eza bat fzf chafa w3m fontconfig
+    xi_install trash-cli fastfetch tree zoxide starship eza bat fzf chafa w3m rsync fontconfig
     xi_install base-devel gcc linux-firmware iw tmux sshpass htop multitail bluetuith dconf fwupd kitty
     xi_install python3 nodejs lnav ulauncher nvtop wmctrl xdotool libinput
     xi_install xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-wlr xdg-user-dirs xdg-user-dirs-gtk xdg-utils
