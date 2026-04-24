@@ -63,6 +63,7 @@ sudo dnf update -y
     sudo dnf install sushi -y
     sudo dnf install fd-find -y
     sudo dnf install fzf -y
+    sudo dnf install rsync -y
     sudo dnf install zip unzip gzip tar make wget -y
 
 # Bash Stuff
