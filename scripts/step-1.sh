@@ -70,6 +70,7 @@ builddir=$(pwd)
         sudo pacman -S bc brightnessctl --noconfirm        
         sudo pacman -S tmux --noconfirm
         sudo pacman -S sshpass --noconfirm
+        sudo pacman -S rsync --noconfirm
         sudo pacman -S htop --noconfirm
         sudo pacman -S glm --noconfirm
 # Ensure Pipewire for audio
