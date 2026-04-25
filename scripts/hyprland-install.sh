@@ -164,7 +164,7 @@ install_hyprland_from_source() {
     git clone --depth=1 https://github.com/Makrennel/hyprland-void "$build_root/hyprland-void"
 
     (
-        cd "$build_root/void-packages"
+        cd "$build_root/void-packages" || exit
         ./xbps-src binary-bootstrap
     )
 
@@ -193,7 +193,7 @@ install_hyprland_from_source() {
     cp -r --remove-destination "$build_root/hyprland-void/srcpkgs"/* "$build_root/void-packages/srcpkgs/"
 
     (
-        cd "$build_root/void-packages"
+        cd "$build_root/void-packages" || exit
         ./xbps-src pkg \
             hyprutils hyprlang hyprgraphics hyprwayland-scanner aquamarine \
             hyprland hyprpaper hyprlock hypridle hyprcursor hyprsunset xdg-desktop-portal-hyprland
@@ -369,6 +369,50 @@ enable_service() {
     fi
 }
 
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+service_enabled() {
+    local service_name="$1"
+
+    [ -L "/var/service/$service_name" ] && return 0
+    [ -L "/etc/runit/runsvdir/current/$service_name" ] && return 0
+    [ -L "/etc/runit/runsvdir/default/$service_name" ] && return 0
+    return 1
+}
+
+post_install_hypr_report() {
+    local missing=()
+    local cmd
+    local svc
+
+    echo "Running Hyprland post-install validation..."
+
+    for cmd in start-hyprland hyprland hyprlock hypridle hyprpaper xdg-desktop-portal-hyprland; do
+        if ! command_exists "$cmd"; then
+            missing+=("missing-command:$cmd")
+        fi
+    done
+
+    for svc in seatd elogind dbus NetworkManager; do
+        if ! service_enabled "$svc"; then
+            missing+=("service-not-enabled:$svc")
+        fi
+    done
+
+    if [ "${#missing[@]}" -eq 0 ]; then
+        echo "Hyprland report: all core checks passed."
+        return 0
+    fi
+
+    echo "Hyprland report: non-fatal warnings detected"
+    for item in "${missing[@]}"; do
+        echo " - $item"
+    done
+    echo "Re-run this installer after fixing network/repository issues if needed."
+}
+
 if [ "$VOID_FORCE_DEFAULT_MIRROR" = "1" ]; then
     setup_void_default_mirror
 fi
@@ -473,6 +517,10 @@ xi_install_safe easyeffects
 xi_install_safe grim
 xi_install_safe slurp
 xi_install_safe cliphist
+xi_install_safe hyprpicker
+xi_install_safe satty
+xi_install_safe swappy
+xi_install_safe wf-recorder
 
 # Install hyprshot (not in Void repos, install from upstream)
 if ! command -v hyprshot >/dev/null 2>&1; then
@@ -539,6 +587,8 @@ if command -v hyprpm &>/dev/null; then
 else
     echo "hyprpm not found, skipping plugin install."
 fi
+
+post_install_hypr_report
 
 # Success message
 echo -e "\nAll Hyprland packages and plugins installed successfully!"

@@ -232,6 +232,7 @@ prompt_install_window_managers_after_install() {
         install_selected_window_managers
     fi
 }
+
 # Main menu loop
 while true; do
     clear
@@ -268,6 +269,7 @@ while true; do
                 ./scripts/install-printers.sh
                 wait
                 cd "$builddir" || exit
+            prompt_install_gnome_polish_after_install
             prompt_install_window_managers_after_install
             if [ "${VOID_INSTALL_GDM:-0}" = "1" ]; then
                 msg_box "System will reboot now. GDM was enabled for graphical login."
@@ -278,6 +280,9 @@ while true; do
             ;;
         "Install Optional Window Managers")
             install_selected_window_managers
+            ;;
+        "Apply GNOME Polish (Optional)")
+            install_gnome_polish_optional
             ;;
         "Rotate TTY 90 Clockwise")
             run_helper_script "Rotating TTY 90 degrees clockwise" "rotate-tty-clockwise.sh"

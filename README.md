@@ -15,7 +15,7 @@ Automates core package installation, GNOME setup, optional WM installs, and basi
 - Lightweight and fast, perfect for tablets or low-resource devices
 - Wayland-first: Hyprland, Sway, i3, and bspwm all supported
 - Applies [Piercing‑Dots](https://github.com/PiercingXX/piercing-dots) minimal dotfiles
-
+- Post-install health reports for base and Hyprland installers
 
 
 ## 🚀 Quick Start
