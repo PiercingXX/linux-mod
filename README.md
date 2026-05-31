@@ -1,7 +1,7 @@
 
 # Void‑Mod
 
-A Void Linux installer for GNOME and multiple window manager setups.  
+A Void Linux installer for Hyprland/GNOME/Sway and multiple other window manager setups.  
 Designed for a lightweight but practical desktop setup.  
 Automates core package installation, GNOME setup, optional WM installs, and basic configuration for a streamlined experience.
 
