@@ -178,6 +178,7 @@ install_hyprland_from_source() {
 
         shlib_name="${shlib_line%% *}"
         shlib_base="${shlib_name%%.so*}.so"
+        # shellcheck disable=SC2016
         shlib_base_escaped="$(printf '%s' "$shlib_base" | sed 's/[.[\*^$()+?{}|]/\\&/g')"
 
         case "$shlib_name" in

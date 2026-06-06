@@ -140,6 +140,47 @@ fi
 
 username=$(id -u -n 1000)
 builddir=$(pwd)
+PIERCING_DOTS_DIR="$builddir/piercing-dots"
+
+ensure_piercing_dots_checkout() {
+    if [ -d "$PIERCING_DOTS_DIR/.git" ]; then
+        return 0
+    fi
+
+    rm -rf "$PIERCING_DOTS_DIR"
+    git clone --depth 1 https://github.com/Piercingxx/piercing-dots.git "$PIERCING_DOTS_DIR"
+}
+
+cleanup_piercing_dots_checkout() {
+    rm -rf "$PIERCING_DOTS_DIR"
+}
+
+can_apply_gnome_polish_now() {
+    command_exists gsettings || return 1
+    command_exists dconf || return 1
+    [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ] || return 1
+    [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ] || return 1
+    return 0
+}
+
+install_gnome_polish_optional() {
+    local remove_after=0
+
+    if [ ! -d "$PIERCING_DOTS_DIR/.git" ]; then
+        ensure_piercing_dots_checkout
+        remove_after=1
+    fi
+
+    echo -e "${YELLOW}Applying GNOME polish...${NC}"
+    cd "$PIERCING_DOTS_DIR/scripts" || exit
+    chmod u+x gnome-customizations.sh
+    ./gnome-customizations.sh
+    cd "$builddir" || exit
+
+    if [ "$remove_after" -eq 1 ]; then
+        cleanup_piercing_dots_checkout
+    fi
+}
 
 # Cache sudo credentials
 cache_sudo_credentials
@@ -172,6 +213,13 @@ function window_manager_menu() {
         "Back"
 }
 
+function printer_menu() {
+    gum choose \
+    "Install Canon D530 Printer" \
+    "Install Omezizy Label Printer" \
+    "Back"
+}
+
 run_wm_install_script() {
     local label="$1"
     local script_name="$2"
@@ -197,6 +245,22 @@ run_helper_script() {
     chmod u+x "$script_name"
     ./"$script_name"
     cd "$builddir" || exit
+}
+
+run_printer_install_script() {
+    local label="$1"
+    local target="$2"
+
+    echo -e "${YELLOW}${label}...${NC}"
+    cd scripts || exit
+    chmod u+x install-printers.sh
+    if ! ./install-printers.sh "$target"; then
+        cd "$builddir" || true
+        echo -e "${YELLOW}${label} encountered errors — check output above.${NC}"
+        return 1
+    fi
+    cd "$builddir" || exit
+    echo -e "${GREEN}${label} completed successfully!${NC}"
 }
 
 install_selected_window_managers() {
@@ -227,6 +291,37 @@ install_selected_window_managers() {
     esac
 }
 
+install_selected_printer() {
+    local printer_choice
+
+    printer_choice=$(printer_menu) || printer_choice=""
+    [ -n "$printer_choice" ] || return 0
+
+    case "$printer_choice" in
+        "Install Canon D530 Printer")
+            run_printer_install_script "Installing Canon D530 printer" "canon-d530"
+            ;;
+        "Install Omezizy Label Printer")
+            run_printer_install_script "Installing Omezizy label printer" "omezizy"
+            ;;
+    esac
+}
+
+prompt_install_printers_after_install() {
+    if gum confirm "Configure a printer now?"; then
+        install_selected_printer
+    fi
+}
+
+apply_gnome_polish_after_install() {
+    if ! can_apply_gnome_polish_now; then
+        echo -e "${YELLOW}Skipping GNOME polish: no active GNOME session detected during install.${NC}"
+        return 0
+    fi
+
+    install_gnome_polish_optional
+}
+
 prompt_install_window_managers_after_install() {
     if gum confirm "Install optional window managers before reboot?"; then
         install_selected_window_managers
@@ -249,9 +344,9 @@ while true; do
                 cd "$builddir" || exit
                 echo -e "${GREEN}Essentials Installed successfully!${NC}"
                 echo -e "${YELLOW}Applying PiercingXX Dotfiles...${NC}"
-                rm -rf piercing-dots
-                git clone --depth 1 https://github.com/Piercingxx/piercing-dots.git
-                cd piercing-dots || exit
+                cleanup_piercing_dots_checkout
+                ensure_piercing_dots_checkout
+                cd "$PIERCING_DOTS_DIR" || exit
                 chmod u+x install.sh
                 ./install.sh
                 cd "$builddir" || exit
@@ -259,17 +354,13 @@ while true; do
                 # Enable bluetooth via runit
                 enable_service bluetoothd
             # Bash support
-                cp -f piercing-dots/resources/bash/.bashrc /home/"$username"/.bashrc
+                cp -f "$PIERCING_DOTS_DIR/resources/bash/.bashrc" /home/"$username"/.bashrc
                 # shellcheck disable=SC1090
                 source "/home/$username/.bashrc"
                 install_safe_launcher_helpers
-                rm -rf piercing-dots
-            # Install Printers
-                chmod u+x scripts/install-printers.sh
-                ./scripts/install-printers.sh
-                wait
-                cd "$builddir" || exit
-            prompt_install_gnome_polish_after_install
+            prompt_install_printers_after_install
+            apply_gnome_polish_after_install
+            cleanup_piercing_dots_checkout
             prompt_install_window_managers_after_install
             if [ "${VOID_INSTALL_GDM:-0}" = "1" ]; then
                 msg_box "System will reboot now. GDM was enabled for graphical login."
@@ -280,9 +371,6 @@ while true; do
             ;;
         "Install Optional Window Managers")
             install_selected_window_managers
-            ;;
-        "Apply GNOME Polish (Optional)")
-            install_gnome_polish_optional
             ;;
         "Rotate TTY 90 Clockwise")
             run_helper_script "Rotating TTY 90 degrees clockwise" "rotate-tty-clockwise.sh"

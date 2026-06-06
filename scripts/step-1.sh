@@ -6,7 +6,6 @@ set -uo pipefail
 trap 'echo "# Installer failed at line ${LINENO}: ${BASH_COMMAND}" >&2' ERR
 
 YELLOW='\033[1;33m'
-BLUE='\033[1;34m'
 NC='\033[0m'
 INSTALL_GDM="${VOID_INSTALL_GDM:-0}"
 
@@ -44,50 +43,6 @@ xi_install_optional() {
         echo "# Optional package install failed: $*"
         return 0
     fi
-}
-
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
-}
-
-service_enabled() {
-    local service_name="$1"
-
-    [ -L "/var/service/$service_name" ] && return 0
-    [ -L "/etc/runit/runsvdir/current/$service_name" ] && return 0
-    [ -L "/etc/runit/runsvdir/default/$service_name" ] && return 0
-    return 1
-}
-
-post_install_health_report() {
-    local missing=()
-    local svc
-    local cmd
-
-    echo "# Running post-install health report..."
-
-    for cmd in gnome-session dbus-run-session flatpak code ssh; do
-        if ! command_exists "$cmd"; then
-            missing+=("missing-command:$cmd")
-        fi
-    done
-
-    for svc in dbus elogind NetworkManager bluetoothd tlp sshd; do
-        if ! service_enabled "$svc"; then
-            missing+=("service-not-enabled:$svc")
-        fi
-    done
-
-    if [ "${#missing[@]}" -eq 0 ]; then
-        echo "# Health report: all core checks passed."
-        return 0
-    fi
-
-    echo "# Health report: non-fatal warnings detected"
-    for item in "${missing[@]}"; do
-        echo "#  - $item"
-    done
-    echo "# You can re-run installer sections safely to remediate missing items."
 }
 
 disable_hyprland_fallback_repo() {
@@ -277,7 +232,6 @@ configure_pipewire_session() {
     echo "# Installing GNOME..."
     xi_install xorg-minimal xorg-server-xwayland xinit xauth xterm twm
     xi_install gnome-session gnome-shell gnome-disk-utility gnome-calculator seahorse gnome-keyring gnome-shell-extensions
-    xi_install_optional gnome-tweaks dconf-editor gnome-browser-connector
     if [ "$INSTALL_GDM" = "1" ]; then
         xi_install gdm
     fi
@@ -354,16 +308,18 @@ EOF
 # VS Code (native install)
     echo "# Installing VS Code natively..."
     mkdir -p "$HOME/.local/opt/vscode" "$HOME/.local/bin"
+    mkdir -p "$HOME/Downloads"
     
     # Download VS Code if not already present
     if [ ! -f "$HOME/Downloads/code.tar.gz" ]; then
         echo "# Downloading VS Code from update server..."
-        cd "$HOME/Downloads" || exit
-        wget -q -O code.tar.gz https://update.code.visualstudio.com/latest/linux-x64/stable || {
+        (
+            cd "$HOME/Downloads" || exit
+            wget -q -O code.tar.gz https://update.code.visualstudio.com/latest/linux-x64/stable
+        ) || {
             echo "# Warning: Failed to download VS Code. Skipping native install."
             echo "# Download manually: wget -q -O ~/Downloads/code.tar.gz https://update.code.visualstudio.com/latest/linux-x64/stable"
         }
-        cd - >/dev/null || exit
     fi
     
     # Extract if archive exists
@@ -372,7 +328,7 @@ EOF
         tar -xzf "$HOME/Downloads/code.tar.gz" -C "$HOME/.local/opt/vscode" --strip-components=1 2>/dev/null || true
         ln -snf "$HOME/.local/opt/vscode/bin/code" "$HOME/.local/bin/code"
         if ! grep -q 'export PATH.*\.local/bin' "$HOME/.bashrc"; then
-            echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+            printf '%s\n' "export PATH=\"\$HOME/.local/bin:\$PATH\"" >> "$HOME/.bashrc"
         fi
         echo "# VS Code installed to $HOME/.local/opt/vscode"
     fi
@@ -446,5 +402,3 @@ EOF
         enable_service cupsd
     # Add dialout group for ZMK / VIA keyboards
         sudo usermod -aG uucp "$USER"
-
-post_install_health_report

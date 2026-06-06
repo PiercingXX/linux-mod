@@ -32,7 +32,7 @@ chmod -R u+x scripts/
 ## 🛠️ Usage
 
 Run `./void-mod.sh` and follow the prompts.  
-Options include minimal system install, window manager install, persistent TTY rotation, and reboot.
+Options include the base install, optional window manager install, persistent TTY rotation, and reboot. The base install flow now applies GNOME polish automatically when a GNOME session is available and prompts inline for optional printer setup.
 
 GDM is optional and disabled by default. To install and enable it during the base flow, run:
 
