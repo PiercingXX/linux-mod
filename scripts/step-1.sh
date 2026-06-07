@@ -16,7 +16,7 @@ builddir=$(pwd)
 XI="sudo xbps-install -y"
 
 xi_pkg_exists() {
-    xbps-query -Rs "^$1$" >/dev/null 2>&1
+    xbps-query -Rs "^$1$" 2>/dev/null | grep -q "^\[[-*]\] $1-"
 }
 
 xi_install() {
@@ -319,6 +319,7 @@ install_jump_cli() {
 
 # System Update
     disable_hyprland_fallback_repo
+    sudo xbps-install -u xbps -y
     sudo xbps-install -Suv -y
     sudo xbps-install -Rs -y void-repo-nonfree
 
