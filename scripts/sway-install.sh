@@ -5,6 +5,21 @@ set -uo pipefail
 
 XI="sudo xbps-install -y"
 
+xi_install_safe() {
+	local pkg
+
+	for pkg in "$@"; do
+		if ! xbps-query -Rs "^${pkg}$" >/dev/null 2>&1; then
+			echo "Skipping unavailable package: $pkg"
+			continue
+		fi
+
+		if ! $XI "$pkg"; then
+			echo "Optional package install failed: $pkg"
+		fi
+	done
+}
+
 configure_pipewire_session() {
 	sudo rm -f /etc/pipewire/pipewire.conf.d/10-wireplumber.conf \
 		/etc/pipewire/pipewire.conf.d/20-pipewire-pulse.conf \
@@ -46,10 +61,13 @@ $XI xdg-desktop-portal-wlr
 
 echo "Installing Wayland bar/launcher stack..."
 $XI waybar
+xi_install_safe nwg-drawer
 $XI fuzzel
 $XI wlogout
 $XI dunst
 $XI libnotify
+xi_install_safe notification-daemon
+xi_install_safe swaync
 
 echo "Installing clipboard and screenshot tools..."
 $XI wl-clipboard

@@ -7,9 +7,17 @@ XI="sudo xbps-install -y"
 REAL_USER="${SUDO_USER:-${USER:-}}"
 HYPR_SOURCE_FALLBACK="${HYPR_SOURCE_FALLBACK:-1}"
 VOID_FORCE_DEFAULT_MIRROR="${VOID_FORCE_DEFAULT_MIRROR:-1}"
+HYPR_REPO_PRIORITY="${HYPR_REPO_PRIORITY:-hyprland-void}"
+HYPRLAND_TEMPLATE_REPO="${HYPRLAND_TEMPLATE_REPO:-https://github.com/Makrennel/hyprland-void}"
+HYPRLAND_TEMPLATE_REF="${HYPRLAND_TEMPLATE_REF:-}"
 HYPRSUNSET_PINNED_HYPRUTILS="${HYPRSUNSET_PINNED_HYPRUTILS:-hyprutils-0.7.1_1}"
 HYPRSUNSET_PINNED_HYPRLANG="${HYPRSUNSET_PINNED_HYPRLANG:-hyprlang-0.6.3_1}"
 HYPRSUNSET_PINNED_PACKAGE="${HYPRSUNSET_PINNED_PACKAGE:-hyprsunset-0.2.0_1}"
+
+HYPRLAND_CORE_PACKAGES=(
+    hyprutils hyprlang hyprgraphics hyprwayland-scanner aquamarine
+    hyprland hyprpaper hyprlock hypridle hyprcursor xdg-desktop-portal-hyprland
+)
 
 setup_void_default_mirror() {
     local libc
@@ -95,12 +103,25 @@ xi_install_optional() {
     fi
 }
 
-installed_pkgver() {
-    xbps-query -p pkgver "$1" 2>/dev/null | sed 's/^pkgver: //'
+git_clone_at_ref() {
+    local repo_url="$1"
+    local dest_dir="$2"
+    local ref="${3:-}"
+
+    rm -rf "$dest_dir"
+    git clone --depth=1 "$repo_url" "$dest_dir"
+
+    if [ -n "$ref" ]; then
+        (
+            cd "$dest_dir" || exit
+            git fetch --depth=1 origin "$ref"
+            git checkout --detach FETCH_HEAD
+        )
+    fi
 }
 
-remove_hyprsunset_stack() {
-    sudo xbps-remove -Fy hyprsunset hyprlang hyprutils 2>/dev/null || true
+installed_pkgver() {
+    xbps-query -p pkgver "$1" 2>/dev/null | sed 's/^pkgver: //'
 }
 
 hyprsunset_pinned_stack_installed() {
@@ -161,7 +182,7 @@ install_hyprland_from_source() {
     mkdir -p "$build_root"
 
     git clone --depth=1 https://github.com/void-linux/void-packages "$build_root/void-packages"
-    git clone --depth=1 https://github.com/Makrennel/hyprland-void "$build_root/hyprland-void"
+    git_clone_at_ref "$HYPRLAND_TEMPLATE_REPO" "$build_root/hyprland-void" "$HYPRLAND_TEMPLATE_REF"
 
     (
         cd "$build_root/void-packages" || exit
@@ -197,12 +218,89 @@ install_hyprland_from_source() {
         cd "$build_root/void-packages" || exit
         ./xbps-src pkg \
             hyprutils hyprlang hyprgraphics hyprwayland-scanner aquamarine \
-            hyprland hyprpaper hyprlock hypridle hyprcursor hyprsunset xdg-desktop-portal-hyprland
+            hyprland hyprpaper hyprlock hypridle hyprcursor hyprsunset \
+            hyprland-qt-support hyprland-qtutils xdg-desktop-portal-hyprland
     )
 
     sudo xbps-install -yR "$build_root/void-packages/hostdir/binpkgs" \
         hyprutils hyprlang hyprgraphics hyprwayland-scanner aquamarine \
-        hyprland hyprpaper hyprlock hypridle hyprcursor hyprsunset xdg-desktop-portal-hyprland
+        hyprland hyprpaper hyprlock hypridle hyprcursor hyprsunset \
+        hyprland-qt-support hyprland-qtutils xdg-desktop-portal-hyprland
+}
+
+remove_hyprland_core_stack() {
+    sudo xbps-remove -Fy "${HYPRLAND_CORE_PACKAGES[@]}" 2>/dev/null || true
+}
+
+install_hyprland_core_from_official_repo() {
+    echo "Installing Hyprland core components from official Void repositories..."
+    xi_install "${HYPRLAND_CORE_PACKAGES[@]}"
+}
+
+install_hyprland_core_from_hyprland_repo() {
+    echo "Installing Hyprland core components from hyprland-void repository..."
+    setup_hyprland_repo
+    sudo xbps-install -S
+    remove_hyprland_core_stack
+    $XI "${HYPRLAND_CORE_PACKAGES[@]}"
+}
+
+install_hyprland_core_packages() {
+    case "$HYPR_REPO_PRIORITY" in
+        hyprland-void)
+            if install_hyprland_core_from_hyprland_repo; then
+                return 0
+            fi
+
+            echo "hyprland-void install failed; trying official Void repositories..."
+            if install_hyprland_core_from_official_repo; then
+                return 0
+            fi
+            ;;
+        official)
+            if install_hyprland_core_from_official_repo; then
+                return 0
+            fi
+
+            echo "Official repo install failed; enabling hyprland-void fallback repo..."
+            if install_hyprland_core_from_hyprland_repo; then
+                return 0
+            fi
+            ;;
+        *)
+            echo "Unsupported HYPR_REPO_PRIORITY value: $HYPR_REPO_PRIORITY" >&2
+            return 1
+            ;;
+            source)
+                install_hyprland_from_source
+                return 0
+                ;;
+    esac
+
+    if [ "$HYPR_SOURCE_FALLBACK" = "1" ]; then
+        install_hyprland_from_source
+        return 0
+    fi
+
+    echo "Hyprland packages remain unresolved, and source fallback is disabled." >&2
+    return 1
+}
+
+require_hyprland_qt_packages() {
+    if xi_install hyprland-qt-support hyprland-qtutils; then
+        return 0
+    fi
+
+    echo "Hyprland Qt packages failed from current repos; enabling hyprland-void fallback repo..."
+    setup_hyprland_repo
+    sudo xbps-install -S
+
+    if xi_install hyprland-qt-support hyprland-qtutils; then
+        return 0
+    fi
+
+    echo "Failed to install hyprland-qt-support and hyprland-qtutils." >&2
+    return 1
 }
 
 hypr_repo_url() {
@@ -428,44 +526,11 @@ xi_install git cmake meson pkg-config
 xi_install mesa mesa-dri mesa-vulkan-intel
 
 # Install core Hyprland components
-# Try official Void repositories first. If dependency resolution fails,
-# fall back to hyprland-void repository with a full index/upgrade refresh.
+# By default, prefer the newer hyprland-void repo. Set HYPR_REPO_PRIORITY=official
+# to keep the old official-first behavior, or HYPR_REPO_PRIORITY=source to force
+# a source build using HYPRLAND_TEMPLATE_REPO / HYPRLAND_TEMPLATE_REF.
 echo "Installing Hyprland core components..."
-if ! xi_install hyprutils hyprlang hyprgraphics hyprwayland-scanner aquamarine \
-    hyprland hyprpaper hyprlock hypridle hyprcursor xdg-desktop-portal-hyprland; then
-    echo "Official repo install failed; enabling hyprland-void fallback repo..."
-    setup_hyprland_repo
-    sudo xbps-install -S
-
-    # Remove any installed Hyprland packages that carry the wrong ABI soname.
-    # This clears the solver's view of broken shlib requirements so xbps can
-    # plan a clean install from hyprland-void without hitting the
-    # "libhyprutils.so.6 unresolvable" abort.
-    echo "Clearing stale Hyprland packages before ABI-consistent reinstall..."
-    sudo xbps-remove -Fy \
-        aquamarine hyprcursor hyprgraphics hypridle hyprland hyprlang \
-        hyprlock hyprpaper hyprutils hyprwayland-scanner \
-        xdg-desktop-portal-hyprland 2>/dev/null || true
-
-    if ! $XI hyprutils hyprlang hyprgraphics hyprwayland-scanner aquamarine; then
-        if [ "$HYPR_SOURCE_FALLBACK" = "1" ]; then
-            install_hyprland_from_source
-        else
-            echo "Hyprland dependency chain is unresolved in binary repos, and source fallback is disabled." >&2
-            exit 1
-        fi
-    fi
-
-    if ! $XI hyprutils hyprlang hyprgraphics hyprwayland-scanner aquamarine \
-        hyprland hyprpaper hyprlock hypridle hyprcursor xdg-desktop-portal-hyprland; then
-        if [ "$HYPR_SOURCE_FALLBACK" = "1" ]; then
-            install_hyprland_from_source
-        else
-            echo "Hyprland packages remain unresolved in binary repos, and source fallback is disabled." >&2
-            exit 1
-        fi
-    fi
-fi
+install_hyprland_core_packages || exit 1
 xi_install polkit-gnome
 xi_install seatd elogind dbus
 enable_service seatd
@@ -507,12 +572,16 @@ xi_install xdg-user-dirs xdg-utils xdg-desktop-portal xdg-desktop-portal-gtk
 xi_install gum kitty neovim jq yazi nautilus gnome-keyring
 
 # Set up menus — use xi_install_safe for utilities that may lag on some mirrors
+xi_install_safe nwg-drawer
 xi_install_safe fuzzel
 xi_install_safe wlogout
 xi_install libnotify
+xi_install_safe notification-daemon
 xi_install_safe dunst
+xi_install_safe swaync
 xi_install_safe brightnessctl
 xi_install_safe easyeffects
+xi_install_safe wl-gammarelay
 
 # Add screenshot and clipboard utilities
 xi_install_safe grim
@@ -559,8 +628,7 @@ enable_service bluetoothd 0
 
 # GUI customization tools
 xi_install_safe nwg-look
-xi_install_safe hyprland-qt-support
-xi_install_safe hyprland-qtutils
+require_hyprland_qt_packages || exit 1
 xi_install_safe qt5ct
 xi_install_safe qt6ct
 xi_install dconf

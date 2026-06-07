@@ -45,6 +45,20 @@ xi_install_optional() {
     fi
 }
 
+xi_install_safe() {
+    local pkg
+
+    for pkg in "$@"; do
+        if xi_pkg_exists "$pkg"; then
+            if ! $XI "$pkg"; then
+                echo "# Optional package install failed: $pkg"
+            fi
+        else
+            echo "# Skipping unavailable package: $pkg"
+        fi
+    done
+}
+
 disable_hyprland_fallback_repo() {
     local repo_conf="/etc/xbps.d/hyprland-void.conf"
     local hypr_pkgs=(
@@ -190,6 +204,97 @@ configure_pipewire_session() {
     fi
 }
 
+require_flatpak_system() {
+    if ! xi_install flatpak; then
+        echo "# Flatpak package install failed."
+        return 1
+    fi
+
+    if ! command -v flatpak >/dev/null 2>&1; then
+        echo "# Flatpak command not found after install."
+        return 1
+    fi
+
+    sudo mkdir -p /var/lib/flatpak /var/tmp/flatpak-cache
+
+    if ! sudo flatpak remote-add --system --if-not-exists flathub \
+        https://dl.flathub.org/repo/flathub.flatpakrepo; then
+        echo "# Failed to add Flathub remote."
+        return 1
+    fi
+
+    return 0
+}
+
+flatpak_install() {
+    local app_id="$1"
+
+    if ! sudo flatpak install --system -y flathub "$app_id"; then
+        echo "# Required Flatpak install failed: $app_id"
+        return 1
+    fi
+}
+
+install_vscode_native() {
+    local archive_path="$HOME/Downloads/code.tar.gz"
+    local temp_archive_path="${archive_path}.part"
+    local install_dir="$HOME/.local/opt/vscode"
+    local bin_dir="$HOME/.local/bin"
+
+    mkdir -p "$install_dir" "$bin_dir" "$HOME/Downloads"
+
+    echo "# Downloading VS Code from update server..."
+    rm -f "$temp_archive_path"
+    if ! curl -fL https://update.code.visualstudio.com/latest/linux-x64/stable -o "$temp_archive_path"; then
+        rm -f "$temp_archive_path"
+        echo "# Failed to download VS Code archive."
+        return 1
+    fi
+
+    mv -f "$temp_archive_path" "$archive_path"
+
+    echo "# Extracting VS Code..."
+    rm -rf "$install_dir"
+    mkdir -p "$install_dir"
+    if ! tar -xzf "$archive_path" -C "$install_dir" --strip-components=1; then
+        echo "# Failed to extract VS Code archive."
+        return 1
+    fi
+
+    if [ ! -x "$install_dir/bin/code" ]; then
+        echo "# VS Code binary missing after extraction: $install_dir/bin/code"
+        return 1
+    fi
+
+    ln -snf "$install_dir/bin/code" "$bin_dir/code"
+    if ! grep -q 'export PATH.*\.local/bin' "$HOME/.bashrc"; then
+        printf '%s\n' "export PATH=\"\$HOME/.local/bin:\$PATH\"" >> "$HOME/.bashrc"
+    fi
+
+    echo "# VS Code installed to $install_dir"
+    return 0
+}
+
+install_jump_cli() {
+    if command -v jump >/dev/null 2>&1; then
+        return 0
+    fi
+
+    if ! xi_install go; then
+        echo "# Failed to install Go; cannot install jump."
+        return 1
+    fi
+
+    mkdir -p "$HOME/.local/bin"
+
+    if ! GOBIN="$HOME/.local/bin" go install github.com/gsamokovarov/jump@latest; then
+        echo "# Failed to install jump via go install."
+        return 1
+    fi
+
+    return 0
+}
+
 # Create Directories if needed
     echo -e "${YELLOW}Creating Necessary Directories...${NC}"
         # font directory
@@ -223,15 +328,16 @@ configure_pipewire_session() {
     xi_install bash-completion linux-headers gtksourceview4 ffmpeg mesa mesa-dri mesa-vdpau mesa-vaapi
     xi_install autoconf automake bison m4 make libtool flex meson ninja optipng sassc cmake cpio
     xi_install trash-cli fastfetch tree zoxide starship eza bat fzf chafa w3m rsync fontconfig
-    xi_install base-devel gcc linux-firmware iw tmux sshpass htop multitail bluetuith dconf fwupd kitty
+    xi_install base-devel gcc linux-firmware iw tmux sshpass htop multitail bluetuith dconf fwupd kitty perl
     xi_install python3 nodejs lnav ulauncher nvtop wmctrl xdotool libinput
+    xi_install_safe libinput-gestures notification-daemon
     xi_install xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-wlr xdg-user-dirs xdg-user-dirs-gtk xdg-utils
     xi_install dbus elogind polkit chrome-gnome-shell
 
 # GNOME stack
     echo "# Installing GNOME..."
     xi_install xorg-minimal xorg-server-xwayland xinit xauth xterm twm
-    xi_install gnome-session gnome-shell gnome-disk-utility gnome-calculator seahorse gnome-keyring gnome-shell-extensions
+    xi_install gnome-session gnome-shell gnome-disk-utility gnome-calculator seahorse gnome-keyring gnome-shell-extensions greetd tuigreet
     if [ "$INSTALL_GDM" = "1" ]; then
         xi_install gdm
     fi
@@ -294,44 +400,27 @@ EOF
 
 # Flatpak
     echo -e "${YELLOW}Installing Flatpak & adding Flathub...${NC}"
-    xi_install flatpak
-    sudo flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-    sudo flatpak install --system flathub net.waterfox.waterfox -y
-    sudo flatpak install --system flathub md.obsidian.Obsidian -y
-    sudo flatpak install --system flathub org.libreoffice.LibreOffice -y
-    sudo flatpak install --system flathub org.qbittorrent.qBittorrent -y
-    sudo flatpak install --system flathub io.missioncenter.MissionCenter -y
-    sudo flatpak install --system flathub com.synology.SynologyDrive -y
-    sudo flatpak install --system flathub io.github.shiftey.Desktop -y # Github Desktop
-    sudo flatpak install --system flathub com.mattjakeman.ExtensionManager -y
+    require_flatpak_system || exit 1
+    flatpak_install net.waterfox.waterfox || exit 1
+    flatpak_install md.obsidian.Obsidian || exit 1
+    flatpak_install org.libreoffice.LibreOffice || exit 1
+    flatpak_install com.protonvpn.www || exit 1
+    flatpak_install org.qbittorrent.qBittorrent || exit 1
+    flatpak_install io.missioncenter.MissionCenter || exit 1
+    flatpak_install com.synology.SynologyDrive || exit 1
+    flatpak_install io.github.shiftey.Desktop || exit 1 # Github Desktop
+    flatpak_install com.mattjakeman.ExtensionManager || exit 1
+    flatpak_install org.gimp.GIMP || exit 1
+    flatpak_install org.darktable.Darktable || exit 1
+    flatpak_install ai.opencode.opencode || exit 1
 
 # VS Code (native install)
     echo "# Installing VS Code natively..."
-    mkdir -p "$HOME/.local/opt/vscode" "$HOME/.local/bin"
-    mkdir -p "$HOME/Downloads"
-    
-    # Download VS Code if not already present
-    if [ ! -f "$HOME/Downloads/code.tar.gz" ]; then
-        echo "# Downloading VS Code from update server..."
-        (
-            cd "$HOME/Downloads" || exit
-            wget -q -O code.tar.gz https://update.code.visualstudio.com/latest/linux-x64/stable
-        ) || {
-            echo "# Warning: Failed to download VS Code. Skipping native install."
-            echo "# Download manually: wget -q -O ~/Downloads/code.tar.gz https://update.code.visualstudio.com/latest/linux-x64/stable"
-        }
-    fi
-    
-    # Extract if archive exists
-    if [ -f "$HOME/Downloads/code.tar.gz" ]; then
-        echo "# Extracting VS Code..."
-        tar -xzf "$HOME/Downloads/code.tar.gz" -C "$HOME/.local/opt/vscode" --strip-components=1 2>/dev/null || true
-        ln -snf "$HOME/.local/opt/vscode/bin/code" "$HOME/.local/bin/code"
-        if ! grep -q 'export PATH.*\.local/bin' "$HOME/.bashrc"; then
-            printf '%s\n' "export PATH=\"\$HOME/.local/bin:\$PATH\"" >> "$HOME/.bashrc"
-        fi
-        echo "# VS Code installed to $HOME/.local/opt/vscode"
-    fi
+    install_vscode_native || exit 1
+
+# Desktop apps and utilities
+    xi_install vlc
+    install_jump_cli || exit 1
 
 # Firewall
     xi_install ufw

@@ -130,6 +130,22 @@ EOF
     sudo chmod +x /usr/local/bin/hypr
 }
 
+ensure_local_bin_on_path() {
+    local bashrc_path="/home/$username/.bashrc"
+
+    if ! grep -q 'export PATH.*\.local/bin' "$bashrc_path"; then
+        printf '%s\n' 'export PATH="$HOME/.local/bin:$PATH"' >> "$bashrc_path"
+    fi
+}
+
+ensure_jump_shell_integration() {
+    local bashrc_path="/home/$username/.bashrc"
+
+    if ! grep -q 'jump shell' "$bashrc_path"; then
+        printf '%s\n' 'command -v jump >/dev/null 2>&1 && eval "$(jump shell)"' >> "$bashrc_path"
+    fi
+}
+
 
 
 # Ensure gum is installed, auto-install if missing
@@ -263,6 +279,32 @@ run_printer_install_script() {
     echo -e "${GREEN}${label} completed successfully!${NC}"
 }
 
+run_gnome_extension_install_script() {
+    echo -e "${YELLOW}Installing GNOME extensions...${NC}"
+    cd scripts || exit
+    chmod u+x install-gnome-extensions.sh
+    if ! ./install-gnome-extensions.sh; then
+        cd "$builddir" || true
+        echo -e "${YELLOW}GNOME extension install encountered errors — check output above.${NC}"
+        return 1
+    fi
+    cd "$builddir" || exit
+    echo -e "${GREEN}GNOME extensions installed successfully!${NC}"
+}
+
+run_gaming_install_script() {
+    echo -e "${YELLOW}Installing gaming stuff...${NC}"
+    cd scripts || exit
+    chmod u+x install-gaming-stuff.sh
+    if ! ./install-gaming-stuff.sh; then
+        cd "$builddir" || true
+        echo -e "${YELLOW}Gaming install encountered errors — check output above.${NC}"
+        return 1
+    fi
+    cd "$builddir" || exit
+    echo -e "${GREEN}Gaming stuff installed successfully!${NC}"
+}
+
 install_selected_window_managers() {
     local wm_choices
     local wm_choice
@@ -307,10 +349,14 @@ install_selected_printer() {
     esac
 }
 
+install_all_printers() {
+    run_printer_install_script "Installing Canon D530 printer" "canon-d530" || return 1
+    run_printer_install_script "Installing Omezizy label printer" "omezizy" || return 1
+}
+
 prompt_install_printers_after_install() {
-    if gum confirm "Configure a printer now?"; then
-        install_selected_printer
-    fi
+    echo -e "${YELLOW}Installing both printer configurations...${NC}"
+    install_all_printers
 }
 
 apply_gnome_polish_after_install() {
@@ -325,6 +371,12 @@ apply_gnome_polish_after_install() {
 prompt_install_window_managers_after_install() {
     if gum confirm "Install optional window managers before reboot?"; then
         install_selected_window_managers
+    fi
+}
+
+prompt_install_gaming_stuff_after_install() {
+    if gum confirm "Install gaming stuff before reboot?"; then
+        run_gaming_install_script
     fi
 }
 
@@ -355,13 +407,17 @@ while true; do
                 enable_service bluetoothd
             # Bash support
                 cp -f "$PIERCING_DOTS_DIR/resources/bash/.bashrc" /home/"$username"/.bashrc
+                ensure_local_bin_on_path
+                ensure_jump_shell_integration
                 # shellcheck disable=SC1090
                 source "/home/$username/.bashrc"
                 install_safe_launcher_helpers
+                run_gnome_extension_install_script
             prompt_install_printers_after_install
             apply_gnome_polish_after_install
             cleanup_piercing_dots_checkout
             prompt_install_window_managers_after_install
+            prompt_install_gaming_stuff_after_install
             if [ "${VOID_INSTALL_GDM:-0}" = "1" ]; then
                 msg_box "System will reboot now. GDM was enabled for graphical login."
             else

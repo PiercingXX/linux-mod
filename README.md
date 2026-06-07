@@ -32,9 +32,9 @@ chmod -R u+x scripts/
 ## 🛠️ Usage
 
 Run `./void-mod.sh` and follow the prompts.  
-Options include the base install, optional window manager install, persistent TTY rotation, and reboot. The base install flow now applies GNOME polish automatically when a GNOME session is available and prompts inline for optional printer setup.
+Options include the base install, optional window manager install, persistent TTY rotation, and reboot. The base install flow now applies GNOME polish automatically when a GNOME session is available, installs `greetd`/`tuigreet` for the text-first GNOME launcher flow, and prompts inline for optional printer setup.
 
-GDM is optional and disabled by default. To install and enable it during the base flow, run:
+GDM is optional and disabled by default. The base flow installs `greetd` and `tuigreet`; to install and enable GDM instead during the base flow, run:
 
 ```bash
 VOID_INSTALL_GDM=1 ./void-mod.sh
