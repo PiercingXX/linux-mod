@@ -472,6 +472,25 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+resolve_hyprland_binary() {
+    local candidate
+
+    for candidate in \
+        "$(command -v Hyprland 2>/dev/null || true)" \
+        "$(command -v hyprland 2>/dev/null || true)" \
+        /usr/bin/Hyprland \
+        /usr/bin/hyprland \
+        /usr/local/bin/Hyprland \
+        /usr/local/bin/hyprland; do
+        [ -n "$candidate" ] || continue
+        [ -x "$candidate" ] || continue
+        printf '%s\n' "$candidate"
+        return 0
+    done
+
+    return 1
+}
+
 service_enabled() {
     local service_name="$1"
 
@@ -488,11 +507,15 @@ post_install_hypr_report() {
 
     echo "Running Hyprland post-install validation..."
 
-    for cmd in start-hyprland hyprland hyprlock hypridle hyprpaper xdg-desktop-portal-hyprland; do
+    for cmd in start-hyprland hyprlock hypridle hyprpaper xdg-desktop-portal-hyprland; do
         if ! command_exists "$cmd"; then
             missing+=("missing-command:$cmd")
         fi
     done
+
+    if ! resolve_hyprland_binary >/dev/null 2>&1; then
+        missing+=("missing-command:Hyprland")
+    fi
 
     for svc in seatd elogind dbus NetworkManager; do
         if ! service_enabled "$svc"; then
@@ -546,13 +569,27 @@ fi
 echo "Creating /usr/local/bin/start-hyprland wrapper..."
 sudo tee /usr/local/bin/start-hyprland >/dev/null <<'EOF'
 #!/bin/sh
-if command -v hyprland >/dev/null 2>&1; then
-    exec dbus-run-session hyprland "$@"
+HYPR_BIN=""
+
+for candidate in \
+    "$(command -v Hyprland 2>/dev/null || true)" \
+    "$(command -v hyprland 2>/dev/null || true)" \
+    /usr/bin/Hyprland \
+    /usr/bin/hyprland \
+    /usr/local/bin/Hyprland \
+    /usr/local/bin/hyprland; do
+    [ -n "$candidate" ] || continue
+    if [ -x "$candidate" ]; then
+        HYPR_BIN="$candidate"
+        break
+    fi
+done
+
+if [ -n "$HYPR_BIN" ]; then
+    exec dbus-run-session "$HYPR_BIN" "$@"
 fi
-if command -v Hyprland >/dev/null 2>&1; then
-    exec dbus-run-session Hyprland "$@"
-fi
-echo "Hyprland binary not found in PATH." >&2
+
+echo "Hyprland binary not found in PATH or expected install locations." >&2
 exit 127
 EOF
 sudo chmod +x /usr/local/bin/start-hyprland
