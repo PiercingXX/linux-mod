@@ -3,7 +3,7 @@
 
 set -uo pipefail
 
-XI="sudo xbps-install -y"
+XI="sudo xbps-install"
 REAL_USER="${SUDO_USER:-${USER:-}}"
 HYPR_SOURCE_FALLBACK="${HYPR_SOURCE_FALLBACK:-1}"
 VOID_FORCE_DEFAULT_MIRROR="${VOID_FORCE_DEFAULT_MIRROR:-1}"
@@ -135,7 +135,7 @@ install_pinned_hyprsunset_stack() {
     setup_hyprland_repo
     sudo xbps-install -S
     remove_hyprsunset_stack
-    sudo xbps-install -yf \
+    sudo xbps-install -f \
         "$HYPRSUNSET_PINNED_HYPRUTILS" \
         "$HYPRSUNSET_PINNED_HYPRLANG" \
         "$HYPRSUNSET_PINNED_PACKAGE"
@@ -222,7 +222,7 @@ install_hyprland_from_source() {
             hyprland-qt-support hyprland-qtutils xdg-desktop-portal-hyprland
     )
 
-    sudo xbps-install -yR "$build_root/void-packages/hostdir/binpkgs" \
+    sudo xbps-install -R "$build_root/void-packages/hostdir/binpkgs" \
         hyprutils hyprlang hyprgraphics hyprwayland-scanner aquamarine \
         hyprland hyprpaper hyprlock hypridle hyprcursor hyprsunset \
         hyprland-qt-support hyprland-qtutils xdg-desktop-portal-hyprland

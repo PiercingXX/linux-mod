@@ -3,7 +3,7 @@
 
 set -uo pipefail
 
-XI="sudo xbps-install -y"
+XI="sudo xbps-install"
 
 configure_pipewire_session() {
 	sudo rm -f /etc/pipewire/pipewire.conf.d/10-wireplumber.conf \

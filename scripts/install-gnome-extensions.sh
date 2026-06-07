@@ -52,7 +52,7 @@ install_available_packages() {
         return 0
     fi
 
-    sudo xbps-install -y "${installable[@]}"
+    sudo xbps-install "${installable[@]}"
 }
 
 user_run() {

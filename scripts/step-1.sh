@@ -13,7 +13,7 @@ username=$(id -u -n 1000)
 builddir=$(pwd)
 
 # xbps helper — install only (sync is handled by system update)
-XI="sudo xbps-install -y"
+XI="sudo xbps-install"
 
 xi_pkg_exists() {
     xbps-query -Rs "^$1$" 2>/dev/null | grep -q "^\[[-*]\] $1-"
@@ -319,9 +319,9 @@ install_jump_cli() {
 
 # System Update
     disable_hyprland_fallback_repo
-    sudo xbps-install -u xbps -y
-    sudo xbps-install -Suv -y
-    sudo xbps-install -Rs -y void-repo-nonfree
+    sudo xbps-install -u xbps
+    sudo xbps-install -Su
+    sudo xbps-install -Rs void-repo-nonfree
 
 # Install core dependencies (deduped)
     echo "# Installing dependencies..."

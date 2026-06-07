@@ -3,7 +3,7 @@
 
 set -uo pipefail
 
-XI="sudo xbps-install -y"
+XI="sudo xbps-install"
 
 xi_install_safe() {
 	local pkg

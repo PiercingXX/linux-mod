@@ -2,7 +2,7 @@
 
 set -uo pipefail
 
-XI="sudo xbps-install -y"
+XI="sudo xbps-install"
 FLATHUB_URL="https://dl.flathub.org/repo/flathub.flatpakrepo"
 
 log() {
@@ -64,6 +64,9 @@ install_gaming_stuff() {
     log 'Enabling Void multilib repositories for native Steam'
     xi_install_required void-repo-multilib void-repo-multilib-nonfree
     sudo xbps-install -S
+
+    log 'Installing 32-bit libraries required by Steam'
+    xi_install_required glibc-32bit libstdc++-32bit libgcc-32bit
 
     log 'Installing Steam natively'
     xi_install_required steam
