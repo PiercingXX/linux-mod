@@ -7,11 +7,11 @@ XI="sudo xbps-install"
 REAL_USER="${SUDO_USER:-${USER:-}}"
 HYPR_SOURCE_FALLBACK="${HYPR_SOURCE_FALLBACK:-1}"
 VOID_FORCE_DEFAULT_MIRROR="${VOID_FORCE_DEFAULT_MIRROR:-1}"
-HYPR_REPO_PRIORITY="${HYPR_REPO_PRIORITY:-hyprland-void}"
+HYPR_REPO_PRIORITY="${HYPR_REPO_PRIORITY:-source}"
 HYPRLAND_TEMPLATE_REPO="${HYPRLAND_TEMPLATE_REPO:-https://github.com/Makrennel/hyprland-void}"
 HYPRLAND_TEMPLATE_REF="${HYPRLAND_TEMPLATE_REF:-}"
-HYPRSUNSET_PINNED_HYPRUTILS="${HYPRSUNSET_PINNED_HYPRUTILS:-hyprutils-0.7.1_1}"
-HYPRSUNSET_PINNED_HYPRLANG="${HYPRSUNSET_PINNED_HYPRLANG:-hyprlang-0.6.3_1}"
+HYPRSUNSET_PINNED_HYPRUTILS="${HYPRSUNSET_PINNED_HYPRUTILS:-hyprutils-0.2.4_1}"
+HYPRSUNSET_PINNED_HYPRLANG="${HYPRSUNSET_PINNED_HYPRLANG:-hyprlang-0.6.7_1}"
 HYPRSUNSET_PINNED_PACKAGE="${HYPRSUNSET_PINNED_PACKAGE:-hyprsunset-0.2.0_1}"
 
 HYPRLAND_CORE_PACKAGES=(
@@ -134,7 +134,6 @@ install_pinned_hyprsunset_stack() {
     echo "Installing pinned hyprsunset compatibility stack from hyprland-void repository..."
     setup_hyprland_repo
     sudo xbps-install -S
-    remove_hyprsunset_stack
     sudo xbps-install -f \
         "$HYPRSUNSET_PINNED_HYPRUTILS" \
         "$HYPRSUNSET_PINNED_HYPRLANG" \
@@ -267,14 +266,14 @@ install_hyprland_core_packages() {
                 return 0
             fi
             ;;
+        source)
+            install_hyprland_from_source
+            return 0
+            ;;
         *)
             echo "Unsupported HYPR_REPO_PRIORITY value: $HYPR_REPO_PRIORITY" >&2
             return 1
             ;;
-            source)
-                install_hyprland_from_source
-                return 0
-                ;;
     esac
 
     if [ "$HYPR_SOURCE_FALLBACK" = "1" ]; then
