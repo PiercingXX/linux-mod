@@ -242,7 +242,7 @@ while true; do
                 source "$HOME/.bashrc"
             # Install Printers
                 chmod u+x scripts/install-printers.sh
-                PRINTER_TARGET="${PRINTER_TARGET:-canon-d530}" ./scripts/install-printers.sh "${PRINTER_TARGET:-canon-d530}"
+                ./scripts/install-printers.sh
                 wait
                 cd "$builddir" || exit
             # Clean Up
