@@ -149,6 +149,38 @@ enable_service() {
     fi
 }
 
+disable_service() {
+    local service_name="$1"
+    local service_dir
+
+    if [ -e /var/service ]; then
+        service_dir="/var/service"
+    elif [ -d /etc/runit/runsvdir/current ]; then
+        service_dir="/etc/runit/runsvdir/current"
+    elif [ -d /etc/runit/runsvdir/default ]; then
+        service_dir="/etc/runit/runsvdir/default"
+    else
+        return 0
+    fi
+
+    sudo sv down "$service_name" >/dev/null 2>&1 || true
+    sudo rm -f "$service_dir/$service_name"
+}
+
+configure_networkmanager_wifi_stability() {
+    # Keep a single network stack active; dhcpcd/wpa_supplicant standalone
+    # services conflict with NetworkManager on Void and can cause route churn.
+    disable_service dhcpcd
+    disable_service wpa_supplicant
+    disable_service iwd
+
+    sudo mkdir -p /etc/NetworkManager/conf.d
+    sudo tee /etc/NetworkManager/conf.d/wifi-powersave.conf >/dev/null <<'EOF'
+[connection]
+wifi.powersave = 2
+EOF
+}
+
 configure_gdm_for_portrait_touchscreen() {
     echo "# Configuring GDM for portrait touchscreen (Xorg, 90 deg clockwise)..."
 
@@ -349,7 +381,7 @@ install_jump_cli() {
     xi_install bluez cronie tlp tlp-rdw powertop
 
 # Wayland / compositor utilities
-    xi_install wl-clipboard waybar fuzzel wlogout libnotify dunst brightnessctl nwg-look
+    xi_install wl-clipboard Waybar fuzzel wlogout libnotify dunst brightnessctl nwg-look
 
 # Fonts and font config
     xi_install noto-fonts-emoji noto-fonts-ttf noto-fonts-ttf-extra
@@ -363,6 +395,7 @@ install_jump_cli() {
     enable_service elogind
     enable_service polkitd
     enable_service NetworkManager
+    configure_networkmanager_wifi_stability
     enable_service bluetoothd
     enable_service cronie
     enable_service tlp

@@ -60,7 +60,7 @@ $XI xdg-desktop-portal
 $XI xdg-desktop-portal-wlr
 
 echo "Installing Wayland bar/launcher stack..."
-$XI waybar
+$XI Waybar
 xi_install_safe nwg-drawer
 $XI fuzzel
 $XI wlogout

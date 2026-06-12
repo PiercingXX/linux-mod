@@ -222,6 +222,8 @@ function menu() {
 
 function window_manager_menu() {
     gum choose \
+    "Install DWM (Optional)" \
+    "Install Awesome (Optional)" \
     "Install Hyprland (Optional)" \
     "Install Sway (Optional)" \
     "Install i3 (Optional)" \
@@ -318,6 +320,12 @@ install_selected_window_managers() {
 
     wm_choice="$wm_choices"
     case $wm_choice in
+        "Install DWM (Optional)")
+            run_wm_install_script "DWM" "dwm-install.sh"
+            ;;
+        "Install Awesome (Optional)")
+            run_wm_install_script "Awesome" "awesome-install.sh"
+            ;;
         "Install Hyprland (Optional)")
             run_wm_install_script "Hyprland" "hyprland-install.sh"
             ;;

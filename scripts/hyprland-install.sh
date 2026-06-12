@@ -467,6 +467,37 @@ enable_service() {
     fi
 }
 
+disable_service() {
+    local service_name="$1"
+    local service_dir
+
+    if [ -e /var/service ]; then
+        service_dir="/var/service"
+    elif [ -d /etc/runit/runsvdir/current ]; then
+        service_dir="/etc/runit/runsvdir/current"
+    elif [ -d /etc/runit/runsvdir/default ]; then
+        service_dir="/etc/runit/runsvdir/default"
+    else
+        return 0
+    fi
+
+    sudo sv down "$service_name" >/dev/null 2>&1 || true
+    sudo rm -f "$service_dir/$service_name"
+}
+
+configure_networkmanager_wifi_stability() {
+    # Keep a single network stack active to avoid intermittent Wi-Fi drops.
+    disable_service dhcpcd
+    disable_service wpa_supplicant
+    disable_service iwd
+
+    sudo mkdir -p /etc/NetworkManager/conf.d
+    sudo tee /etc/NetworkManager/conf.d/wifi-powersave.conf >/dev/null <<'EOF'
+[connection]
+wifi.powersave = 2
+EOF
+}
+
 command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
@@ -660,6 +691,7 @@ xi_install network-manager-applet
 xi_install bluez
 xi_install_safe bluetuith
 enable_service NetworkManager
+configure_networkmanager_wifi_stability
 enable_service bluetoothd 0
 
 # GUI customization tools
