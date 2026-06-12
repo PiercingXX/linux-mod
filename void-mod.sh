@@ -223,6 +223,7 @@ function menu() {
 function window_manager_menu() {
     gum choose \
     "Install DWM (Optional)" \
+    "Install herbstluftwm (Optional)" \
     "Install Awesome (Optional)" \
     "Install Hyprland (Optional)" \
     "Install Sway (Optional)" \
@@ -322,6 +323,9 @@ install_selected_window_managers() {
     case $wm_choice in
         "Install DWM (Optional)")
             run_wm_install_script "DWM" "dwm-install.sh"
+            ;;
+        "Install herbstluftwm (Optional)")
+            run_wm_install_script "herbstluftwm" "herbstluftwm-install.sh"
             ;;
         "Install Awesome (Optional)")
             run_wm_install_script "Awesome" "awesome-install.sh"
