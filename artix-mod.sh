@@ -137,6 +137,7 @@ configure_default_display_manager() {
 
 window_manager_menu() {
     local options=(
+        "Install Awesome"
         "Install i3"
         "Install bspwm"
         "Install Hyprland"
@@ -161,6 +162,9 @@ window_manager_menu() {
 
         wm_choice="$wm_choices"
         case $wm_choice in
+            "Install Awesome")
+                run_wm_install_script "Awesome" "awesome-install.sh"
+                ;;
             "Install i3")
                 run_wm_install_script "i3" "i3-install.sh"
                 ;;
