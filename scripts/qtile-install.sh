@@ -1,0 +1,139 @@
+#!/bin/bash
+# GitHub.com/PiercingXX
+
+set -uo pipefail
+
+XI="sudo xbps-install"
+
+xi_install_safe() {
+	local pkg
+
+	for pkg in "$@"; do
+		if ! xbps-query -Rs "^${pkg}$" >/dev/null 2>&1; then
+			echo "Skipping unavailable package: $pkg"
+			continue
+		fi
+
+		if ! $XI "$pkg"; then
+			echo "Optional package install failed: $pkg"
+		fi
+	done
+}
+
+configure_pipewire_session() {
+	sudo rm -f /etc/pipewire/pipewire.conf.d/10-wireplumber.conf \
+		/etc/pipewire/pipewire.conf.d/20-pipewire-pulse.conf \
+		/etc/alsa/conf.d/50-pipewire.conf \
+		/etc/alsa/conf.d/99-pipewire-default.conf
+
+	sudo mkdir -p /etc/xdg/autostart
+
+	if [ -f /usr/share/applications/pipewire.desktop ]; then
+		sudo ln -snf /usr/share/applications/pipewire.desktop \
+			/etc/xdg/autostart/pipewire.desktop
+	fi
+
+	if [ -f /usr/share/applications/pipewire-pulse.desktop ]; then
+		sudo ln -snf /usr/share/applications/pipewire-pulse.desktop \
+			/etc/xdg/autostart/pipewire-pulse.desktop
+	fi
+
+	if [ -f /usr/share/applications/wireplumber.desktop ]; then
+		sudo ln -snf /usr/share/applications/wireplumber.desktop \
+			/etc/xdg/autostart/wireplumber.desktop
+	fi
+}
+
+echo "Ensuring build dependencies are available..."
+$XI base-devel
+$XI git
+$XI cmake
+$XI meson
+$XI pkg-config
+
+echo "Installing Qtile core components..."
+$XI qtile
+$XI python3-psutil
+$XI picom
+$XI dmenu
+
+echo "Installing X11 utilities used by Qtile config..."
+$XI xorg-server
+$XI xorg-xinit
+$XI xrandr
+$XI xinput
+$XI xsetroot
+$XI xrdb
+$XI setxkbmap
+$XI xev
+$XI numlockx
+$XI feh
+
+echo "Installing launcher/menu and screenshot tools..."
+$XI fuzzel
+xi_install_safe nwg-drawer
+$XI grim
+$XI slurp
+$XI wl-clipboard
+$XI cliphist
+$XI i3lock
+
+echo "Installing audio and brightness controls..."
+$XI pipewire
+$XI pipewire-pulse
+$XI alsa-pipewire
+$XI alsa-utils
+$XI wireplumber
+$XI wireplumber-elogind
+$XI pavucontrol
+$XI pamixer
+$XI playerctl
+$XI easyeffects
+$XI rtkit
+$XI brightnessctl
+
+echo "Installing auth/session helpers..."
+$XI polkit-gnome
+$XI gnome-keyring
+
+echo "Installing terminal and file tools..."
+$XI kitty
+$XI tmux
+$XI thunar
+$XI thunar-volman
+
+echo "Installing system utilities used by widgets/scripts..."
+$XI NetworkManager
+$XI network-manager-applet
+$XI acpi
+$XI upower
+
+configure_pipewire_session
+
+echo "Creating Qtile session launchers..."
+sudo tee /usr/local/bin/start-qtile >/dev/null <<'EOF'
+#!/bin/sh
+if ! command -v qtile >/dev/null 2>&1; then
+    echo "qtile is not installed. Run the qtile installer first." >&2
+    exit 127
+fi
+
+if command -v startx >/dev/null 2>&1; then
+    exec dbus-run-session startx /usr/bin/qtile start -- "$@"
+fi
+
+exec dbus-run-session qtile start "$@"
+EOF
+sudo chmod +x /usr/local/bin/start-qtile
+
+sudo tee /usr/local/bin/qtile-session >/dev/null <<'EOF'
+#!/bin/sh
+exec /usr/local/bin/start-qtile "$@"
+EOF
+sudo chmod +x /usr/local/bin/qtile-session
+
+# Keep one network manager active across TTY and WMs.
+bash "$(dirname "$0")/network-manager-setup.sh"
+
+echo -e "\nAll Qtile packages installed successfully!"
+echo "Start from TTY with: start-qtile"

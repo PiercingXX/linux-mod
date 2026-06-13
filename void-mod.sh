@@ -226,6 +226,7 @@ function window_manager_menu() {
     "Install herbstluftwm (Optional)" \
     "Install Awesome (Optional)" \
     "Install Hyprland (Optional)" \
+    "Install Qtile (Optional)" \
     "Install Sway (Optional)" \
     "Install i3 (Optional)" \
     "Install bspwm (Optional)" \
@@ -332,6 +333,9 @@ install_selected_window_managers() {
             ;;
         "Install Hyprland (Optional)")
             run_wm_install_script "Hyprland" "hyprland-install.sh"
+            ;;
+        "Install Qtile (Optional)")
+            run_wm_install_script "Qtile" "qtile-install.sh"
             ;;
         "Install Sway (Optional)")
             run_wm_install_script "Sway" "sway-install.sh"
