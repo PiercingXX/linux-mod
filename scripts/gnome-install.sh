@@ -33,9 +33,8 @@ if ! enable_and_start_service elogind; then
     echo "Warning: Could not start/enable elogind service on this init system."
 fi
 
-if ! enable_and_start_service NetworkManager networkmanager; then
-    echo "Warning: Could not start/enable NetworkManager service on this init system."
-fi
+# Keep one network manager active across TTY and WMs.
+bash "$(dirname "$0")/network-manager-setup.sh"
 
 if ! enable_ly_service; then
     echo "Warning: Could not start/enable ly service on this init system."

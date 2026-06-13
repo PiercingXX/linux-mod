@@ -47,6 +47,9 @@ ${PKGMGR} networkmanager
 ${PKGMGR} network-manager-applet
 ${PKGMGR} mate-polkit
 
+# Keep one network manager active across TTY and WMs.
+bash "$(dirname "$0")/network-manager-setup.sh"
+
 echo "Installing optional swallow helpers..."
 ${PKGMGR} xdo
 ${PKGMGR} bspwm-swallow-git || echo "Warning: Optional package bspwm-swallow-git failed to install"
