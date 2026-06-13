@@ -110,4 +110,7 @@ $XI upower
 
 configure_pipewire_session
 
+# Keep one network manager active across TTY and WMs.
+bash "$(dirname "$0")/network-manager-setup.sh"
+
 echo -e "\nAll i3 packages installed successfully!"
