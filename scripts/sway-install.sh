@@ -64,10 +64,10 @@ $XI Waybar
 xi_install_safe nwg-drawer
 $XI fuzzel
 $XI wlogout
-$XI dunst
+$XI swaync
 $XI libnotify
 xi_install_safe notification-daemon
-xi_install_safe swaync
+xi_install_safe dunst
 
 echo "Installing clipboard and screenshot tools..."
 $XI wl-clipboard

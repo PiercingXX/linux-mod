@@ -230,6 +230,7 @@ function window_manager_menu() {
     "Install Sway (Optional)" \
     "Install i3 (Optional)" \
     "Install bspwm (Optional)" \
+    "Install Qtile (Optional)" \
         "Back"
 }
 
@@ -345,6 +346,9 @@ install_selected_window_managers() {
             ;;
         "Install bspwm (Optional)")
             run_wm_install_script "bspwm" "bspwm-install.sh"
+            ;;
+        "Install Qtile (Optional)")
+            run_wm_install_script "Qtile" "qtile-install.sh"
             ;;
     esac
 }

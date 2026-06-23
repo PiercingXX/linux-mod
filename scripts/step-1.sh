@@ -267,6 +267,37 @@ flatpak_install() {
     fi
 }
 
+flatpak_apply_audio_override() {
+    local app_id="$1"
+
+    if ! sudo flatpak info --system "$app_id" >/dev/null 2>&1; then
+        return 0
+    fi
+
+    if ! command -v runuser >/dev/null 2>&1; then
+        echo "# runuser not found; skipping user Flatpak override for $app_id"
+        return 0
+    fi
+
+    runuser -u "$username" -- flatpak override --user \
+        --socket=pulseaudio \
+        --filesystem=xdg-run/pipewire-0 \
+        "$app_id" || true
+}
+
+apply_known_flatpak_audio_overrides() {
+    local app
+    local apps=(
+        net.waterfox.waterfox
+        com.discordapp.Discord
+        dev.vencord.Vesktop
+    )
+
+    for app in "${apps[@]}"; do
+        flatpak_apply_audio_override "$app"
+    done
+}
+
 install_vscode_native() {
     local archive_path="$HOME/Downloads/code.tar.gz"
     local temp_archive_path="${archive_path}.part"
@@ -381,7 +412,7 @@ install_jump_cli() {
     xi_install bluez cronie tlp tlp-rdw powertop
 
 # Wayland / compositor utilities
-    xi_install wl-clipboard Waybar fuzzel wlogout libnotify dunst brightnessctl nwg-look
+    xi_install wl-clipboard Waybar fuzzel wlogout libnotify dunst swaync brightnessctl nwg-look grim slurp
 
 # Fonts and font config
     xi_install noto-fonts-emoji noto-fonts-ttf noto-fonts-ttf-extra
@@ -447,6 +478,7 @@ EOF
     flatpak_install org.gimp.GIMP || exit 1
     flatpak_install org.darktable.Darktable || exit 1
     flatpak_install ai.opencode.opencode || exit 1
+    apply_known_flatpak_audio_overrides
 
 # VS Code (native install)
     echo "# Installing VS Code natively..."
