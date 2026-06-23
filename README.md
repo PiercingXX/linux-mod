@@ -13,7 +13,7 @@ Automates core package installation, GNOME setup, optional WM installs, and basi
 
 - Core system install with GNOME desktop support
 - Lightweight and fast, perfect for tablets or low-resource devices
-- Wayland-first: Hyprland, Sway, i3, and bspwm all supported
+- Wayland/X11 support: Hyprland, Sway, i3, bspwm, and Qtile
 - Applies [Piercing‑Dots](https://github.com/PiercingXX/piercing-dots) minimal dotfiles
 - Post-install health reports for base and Hyprland installers
 
@@ -74,6 +74,7 @@ Required packages that anchor a fallback chain (e.g. `hyprland` core, `mesa`, `d
 | `scripts/sway-install.sh` | Installs Sway and Wayland stack              |
 | `scripts/i3-install.sh`   | Installs i3 and X11 stack                    |
 | `scripts/bspwm-install.sh`| Installs bspwm and X11 stack                 |
+| `scripts/qtile-install.sh`| Installs Qtile and X11 stack                 |
 | `scripts/rotate-tty-clockwise.sh` | Rotates the Linux TTY 90 degrees clockwise and persists it in GRUB |
 | `scripts/install-printers.sh` | Configures Canon D530 or Omezizy label printer |
 

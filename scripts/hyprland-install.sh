@@ -103,6 +103,33 @@ xi_install_optional() {
     fi
 }
 
+ensure_notification_daemon() {
+    # Prefer swaync, but guarantee at least one notification daemon exists.
+    xi_install_safe swaync
+
+    if command -v swaync >/dev/null 2>&1; then
+        echo "# [ok] notification daemon available: swaync"
+        return 0
+    fi
+
+    xi_install_safe notification-daemon
+
+    if command -v notification-daemon >/dev/null 2>&1; then
+        echo "# [ok] notification daemon available (fallback): notification-daemon"
+        return 0
+    fi
+
+    xi_install_safe dunst
+
+    if command -v dunst >/dev/null 2>&1; then
+        echo "# [warn] notification daemon available (fallback): dunst"
+        return 0
+    fi
+
+    echo "# [warn] no notification daemon could be installed from current repos"
+    return 1
+}
+
 git_clone_at_ref() {
     local repo_url="$1"
     local dest_dir="$2"
@@ -643,9 +670,7 @@ xi_install_safe nwg-drawer
 xi_install_safe fuzzel
 xi_install_safe wlogout
 xi_install libnotify
-xi_install_safe notification-daemon
-xi_install_safe dunst
-xi_install_safe swaync
+ensure_notification_daemon || true
 xi_install_safe brightnessctl
 xi_install_safe easyeffects
 xi_install_safe wl-gammarelay

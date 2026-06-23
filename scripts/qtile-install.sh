@@ -77,6 +77,9 @@ $XI slurp
 $XI wl-clipboard
 $XI cliphist
 $XI i3lock
+$XI flameshot
+xi_install_safe nitrogen
+xi_install_safe rofi
 
 echo "Installing audio and brightness controls..."
 $XI pipewire
