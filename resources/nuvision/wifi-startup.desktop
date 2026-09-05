@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Exec=pkexec /usr/local/bin/wifi-startup.sh
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Name=WiFi Startup Script
+Comment=Start WiFi on login

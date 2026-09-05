@@ -1,0 +1,11 @@
+[Unit]
+Description=KooTigers Goodix touchscreen bring-up
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/boot-touchscreen.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

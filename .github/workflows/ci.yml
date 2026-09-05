@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: Lint
+        run: shellcheck -S error linux-mod.sh lib/*.sh modules/*.sh
+
+  dry-run:
+    # Full + mini dry-run inside each supported distro's container.
+    # Manual git clone instead of actions/checkout: JS actions can't run in
+    # musl (alpine) containers, plain `run` steps can.
+    runs-on: ubuntu-latest
+    needs: shellcheck
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: arch
+            image: archlinux:latest
+            setup: pacman -Syu --noconfirm --needed bash git
+          - name: debian
+            image: debian:stable
+            setup: apt-get update && apt-get install -y bash git ca-certificates
+          - name: fedora
+            image: fedora:latest
+            setup: dnf install -y bash git
+          - name: void
+            image: ghcr.io/void-linux/void-glibc-full:latest
+            setup: xbps-install -Suy xbps && xbps-install -y bash git
+            experimental: true
+          - name: opensuse
+            image: opensuse/tumbleweed:latest
+            setup: zypper -n install bash git
+          - name: alpine
+            image: alpine:latest
+            setup: apk add bash git
+            experimental: true
+    name: dry-run (${{ matrix.name }})
+    container: ${{ matrix.image }}
+    continue-on-error: ${{ matrix.experimental || false }}
+    steps:
+      - name: Prepare container
+        shell: sh
+        run: ${{ matrix.setup }}
+      - name: Clone
+        shell: sh
+        run: |
+          git clone "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" repo
+          cd repo && git checkout "$GITHUB_SHA"
+      - name: Dry-run full install
+        shell: bash
+        run: cd repo && ./linux-mod.sh --dry-run --no-color --full
+      - name: Dry-run mini install
+        shell: bash
+        run: cd repo && ./linux-mod.sh --dry-run --no-color --mini
