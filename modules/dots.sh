@@ -57,7 +57,9 @@ apply_dots() {
     say "Applying PiercingXX customizations (piercing-dots)..."
     ensure_piercing_dots
 
-    (cd "$PIERCING_DOTS_DIR" && chmod u+x install.sh && ./install.sh) || warn "piercing-dots install.sh reported errors."
+    # GNOME polish runs below (now or on first login), so install.sh skips it
+    (cd "$PIERCING_DOTS_DIR" && chmod u+x install.sh && PIERCINGXX_SKIP_GNOME=1 ./install.sh) \
+        || warn "piercing-dots install.sh reported errors."
 
     # Bluetooth back on (whatever the init system calls it)
     svc_enable bluetooth bluetoothd || true

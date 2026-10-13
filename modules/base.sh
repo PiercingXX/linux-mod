@@ -91,8 +91,10 @@ _base_core_cli() {
 
     case "$DISTRO" in
         arch|artix)
+            # pacman-contrib: checkupdates/paccache/pacdiff, used by the
+            # piercing-dots update counter, Clean System and Update System
             pi base-devel gcc meson pkg-config rust reflector linux-firmware \
-               bc brightnessctl glm cpio lnav
+               bc brightnessctl glm cpio lnav pacman-contrib arch-audit
             [ "$DISTRO" = "arch" ] && pi webkit2gtk-4.1
             ensure_paru
             aur nvtop-git jump-bin
@@ -436,8 +438,7 @@ _base_mini_tweaks() {
                 sudo pacman -S --needed --noconfirm "$p" 2>/dev/null \
                     || warn "Optional firmware not in repos, skipping: $p"
             done
-            pi iw bluez bluez-utils
-            aur bluetuith
+            pi iw bluez bluez-utils bluetui
             ;;
         void)
             pi iw bluetuith

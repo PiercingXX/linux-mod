@@ -64,7 +64,7 @@ _wm_network_stack() {
         void)   pi NetworkManager network-manager-applet bluez bluetuith ;;
         suse)   pi NetworkManager NetworkManager-applet bluez ;;
         alpine) pi networkmanager network-manager-applet bluez ;;
-        *)      pi networkmanager network-manager-applet bluez bluez-utils; aur bluetuith ;;
+        *)      pi networkmanager network-manager-applet bluez bluez-utils bluetui ;;
     esac
 }
 
