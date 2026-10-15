@@ -26,8 +26,9 @@ modules/
 ├── wm.sh                     Hyprland, Sway, i3, bspwm, Awesome, Qtile, DWM,
 │                             herbstluftwm, GNOME, BusyBox — per-distro branches
 ├── drivers.sh                Nvidia+CUDA, Surface kernel, KooTigers touchscreen,
-│                             NuVision tablet, TTY rotation
-└── extras.sh                 printers (Canon D530 / Omezizy), gaming, Cosmic
+│                             NuVision tablet, 3Dconnexion SpaceMouse, TTY rotation
+└── extras.sh                 printers (Canon D530 / Canon MG3600 / Epson ET-4800 /
+                              Omezizy), gaming, Cosmic
 resources/
 ├── kootigers/                Goodix touchscreen boot service
 └── nuvision/                 Broadcom wifi/BT + SOF audio firmware, hwdb
@@ -41,7 +42,7 @@ resources/
 | Artix | ✅ | ✅ | runit/OpenRC/dinit aware, ly login |
 | Debian / Ubuntu / Pop!_OS / Mint | ✅ | ✅ | Hyprland built from source |
 | Fedora | ✅ | ✅ | COPR + RPM Fusion |
-| Void | ✅ | ✅ | runit, GDM off by default |
+| Void | ✅ | ✅ | runit, GDM off by default, Hyprland built from source |
 | openSUSE Tumbleweed | ✅ | ✅ | zypper, NVIDIA repo for drivers |
 | Alpine | ⚠️ | ✅ | musl: mini-focused; flatpaks fill the gaps |
 
@@ -59,6 +60,7 @@ cd linux-mod
 ./linux-mod.sh --full          # unattended full install (no DE unless --wm)
 ./linux-mod.sh --mini          # unattended mini install
 ./linux-mod.sh --full --wm hyprland,gnome
+./linux-mod.sh --full --spacemouse   # also set up a 3Dconnexion SpaceMouse
 ./linux-mod.sh --dry-run       # print what would happen, change nothing
 ./linux-mod.sh --reset-state   # forget completed steps, redo everything
 ./linux-mod.sh --no-color      # plain output (NO_COLOR env works too)
@@ -66,6 +68,8 @@ cd linux-mod
 ```
 
 Run as your normal user (not root); sudo is requested once and kept alive.
+On Alpine, a stock install has neither: run `doas apk add bash sudo` first
+(and add yourself to `wheel` in `/etc/sudoers`).
 Everything is logged to `/tmp/linux-mod.log`, and every run ends with a
 summary table of any warnings.
 
@@ -83,7 +87,10 @@ probes still execute.)
 from the distro repo, or (non-Alpine) fetched as one pinned static binary into
 `~/.local/share/linux-mod/bin`. Full and Mini do **not** assume a desktop —
 the menu asks you to pick one or more WMs after apps. Unattended runs skip
-that unless you pass `--wm`. No automatic reboot.
+that unless you pass `--wm`. After the WM pick, interactive installs offer
+3Dconnexion SpaceMouse support (spacenavd + spnavcfg, for the SpaceMouse
+Compact 3DX-700059 and other 3Dconnexion devices) and the gaming extras;
+unattended runs add the SpaceMouse with `--spacemouse`. No automatic reboot.
 
 Menu: **Full Install** · **Mini Install** · **Window Managers** (multi-select) ·
 **Drivers & Hardware** · **Extras** — options that don't apply to your distro
@@ -92,7 +99,11 @@ simply don't appear.
 ## Design rules
 
 - `pi` installs packages and *skips* individually-unavailable ones with a
-  warning instead of aborting a 40-minute install.
+  warning instead of aborting a 40-minute install. It still returns 1 when
+  something was skipped, so `pi a || pi b` fallbacks work.
+- Networking is never pulled mid-install: if iwd/networkd/dhcpcd is carrying
+  the connection, the swap to NetworkManager happens at the end (at next boot
+  on systemd).
 - `svc_enable bluetooth bluetoothd` — first service name that exists wins,
   regardless of init system.
 - Distro detection uses `/etc/os-release` `ID` with `ID_LIKE` fallback, so

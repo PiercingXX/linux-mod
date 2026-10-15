@@ -1,7 +1,8 @@
 # shellcheck shell=bash
 # GitHub.com/PiercingXX
 # Drivers & hardware - Nvidia, Microsoft Surface kernel, KooTigers touchscreen,
-# NuVision 8in tablet, TTY rotation. One function per item, distro-branched.
+# NuVision 8in tablet, 3Dconnexion SpaceMouse, TTY rotation. One function per
+# item, distro-branched.
 
 RES_DIR="$LINUX_MOD_ROOT/resources"
 
@@ -12,7 +13,7 @@ drivers_menu() {
         arch|artix|debian|suse)
             options+=("KooTigers Touchscreen Driver" "NuVision 8in Tablet Fixes") ;;
     esac
-    options+=("Rotate TTY Clockwise" "Back")
+    options+=("3Dconnexion SpaceMouse" "Rotate TTY Clockwise" "Back")
 
     local choice
     while true; do
@@ -23,6 +24,7 @@ drivers_menu() {
             "Microsoft Surface Kernel")     drivers_surface ;;
             "KooTigers Touchscreen Driver") drivers_kootigers ;;
             "NuVision 8in Tablet Fixes")    drivers_nuvision ;;
+            "3Dconnexion SpaceMouse")       drivers_spacemouse ;;
             "Rotate TTY Clockwise")         drivers_rotate_tty ;;
             "Back"|"")                      break ;;
         esac
@@ -38,28 +40,21 @@ drivers_nvidia() {
     case "$DISTRO" in
         arch|artix)
             pkg_update
-            pi nvidia nvidia-utils nvidia-settings nvidia-dkms cuda \
-               lib32-nvidia-libgl lib32-nvidia-utils
+            nvidia_arch_driver || return 1
+            pi cuda
             ;;
         debian)
-            sudo apt update
-            pi nvidia-driver-535 nvidia-dkms-535 nvidia-settings nvidia-utils-535 nvtop
-            local cuda_deb="cuda-repo-debian13-13-0-local_13.0.0-580.65.06-1_amd64.deb"
-            wget -q "https://developer.download.nvidia.com/compute/cuda/13.0.0/local_installers/${cuda_deb}" -O "/tmp/${cuda_deb}" \
-                && sudo dpkg -i "/tmp/${cuda_deb}" \
-                && sudo cp /var/cuda-repo-debian13-13-0-local/cuda-*-keyring.gpg /usr/share/keyrings/ \
-                && sudo apt update \
-                && pi cuda-toolkit-13-0
-            sudo dpkg --add-architecture i386 && sudo apt update
-            pi libgl1-nvidia-glvnd-glx:i386
-            command rm -f "/tmp/${cuda_deb}"
-            sudo apt autoremove -y
+            _nvidia_debian || return 1
             ;;
         fedora)
             # via RPM Fusion (enabled during base setup)
             pi akmod-nvidia xorg-x11-drv-nvidia-cuda
             ;;
         void)
+            if [ "$LIBC" = "musl" ]; then
+                warn "Proprietary Nvidia drivers aren't built for void-musl; using nouveau."
+                return 1
+            fi
             pi void-repo-nonfree && sudo xbps-install -S
             pi nvidia nvidia-libs-32bit
             ;;
@@ -78,6 +73,82 @@ drivers_nvidia() {
     if [ "$DRY_RUN" -eq 0 ] && ui_confirm "Reboot now to load the Nvidia driver?"; then
         sudo reboot
     fi
+}
+
+# Which Arch driver branch fits this GPU, from the codename lspci prints
+# (e.g. "GP104 [GeForce GTX 1080]"):
+#   open   - Turing (RTX 20 / GTX 16) and newer: nvidia-open-dkms (repo)
+#   580xx  - Maxwell/Pascal (GM/GP): last driver that supports them (AUR)
+#   none   - Kepler/Fermi and older: nouveau only
+_nvidia_arch_branch() {
+    local gpu
+    gpu=$(lspci 2>/dev/null | grep -iE 'vga|3d|display' | grep -i nvidia)
+    if printf '%s' "$gpu" | grep -qE '\bG(K|F)[0-9]{3}'; then
+        echo none
+    elif printf '%s' "$gpu" | grep -qE '\bG(M|P)[0-9]{3}'; then
+        echo 580xx
+    else
+        echo open
+    fi
+}
+
+# Driver + 32-bit userspace (Steam needs it). Arch dropped `nvidia` and
+# `nvidia-dkms`; dkms builds for whatever kernels are installed (surface,
+# zen, cachyos...), so pull their headers too. Shared with extras_gaming.
+nvidia_arch_driver() {
+    local headers=() f
+    for f in /usr/lib/modules/*/pkgbase; do
+        [ -f "$f" ] && headers+=("$(cat "$f")-headers")
+    done
+    [ ${#headers[@]} -gt 0 ] || headers=(linux-headers)
+    case "$(_nvidia_arch_branch)" in
+        open)
+            pi "${headers[@]}" nvidia-open-dkms nvidia-utils nvidia-settings lib32-nvidia-utils
+            ;;
+        580xx)
+            say "Maxwell/Pascal GPU: using the 580xx legacy driver from the AUR."
+            pi "${headers[@]}"
+            aur nvidia-580xx-dkms nvidia-580xx-utils nvidia-580xx-settings lib32-nvidia-580xx-utils
+            ;;
+        none)
+            warn "This Nvidia GPU is too old for the current drivers; staying on nouveau."
+            return 1
+            ;;
+    esac
+}
+
+# Debian: non-free nvidia-driver + NVIDIA's CUDA network repo.
+# Ubuntu/Pop/Mint: their own driver tooling + the distro CUDA toolkit.
+_nvidia_debian() {
+    sudo apt update
+    case "$OS_ID" in
+        debian)
+            pi linux-headers-amd64 nvidia-driver firmware-misc-nonfree nvidia-settings nvtop
+            local major="${OS_VERSION_ID%%.*}" tmp
+            tmp=$(mktemp -d)
+            # cuda-keyring tracks NVIDIA's repo, unlike the pinned local
+            # installer this used to download (which 404s now)
+            if [ -n "$major" ] && wget -q -O "$tmp/cuda-keyring.deb" \
+                    "https://developer.download.nvidia.com/compute/cuda/repos/debian${major}/x86_64/cuda-keyring_1.1-1_all.deb"; then
+                sudo dpkg -i "$tmp/cuda-keyring.deb" && sudo apt update && pi cuda-toolkit
+            else
+                warn "No NVIDIA CUDA repo for Debian ${major:-?}; using Debian's nvidia-cuda-toolkit."
+                pi nvidia-cuda-toolkit
+            fi
+            command rm -rf "$tmp"
+            sudo dpkg --add-architecture i386 && sudo apt update
+            pi nvidia-driver-libs:i386
+            ;;
+        pop)
+            pi system76-driver-nvidia nvtop nvidia-cuda-toolkit
+            ;;
+        *)
+            pi ubuntu-drivers-common nvtop
+            sudo ubuntu-drivers install || { warn "ubuntu-drivers could not pick a driver."; return 1; }
+            pi nvidia-cuda-toolkit
+            ;;
+    esac
+    sudo apt autoremove -y
 }
 
 # ---------------------------------------------------------------------------
@@ -244,6 +315,43 @@ EOF
     sudo systemctl restart iio-sensor-proxy 2>/dev/null || true
 
     ok "NuVision tablet fixes applied. Reboot!"
+}
+
+# ---------------------------------------------------------------------------
+# 3Dconnexion SpaceMouse Compact (3DX-700059, USB 256f:c635) - spacenavd
+# Blender/FreeCAD talk to spacenavd over /run/spnav.sock (the Blender flatpak
+# already has that socket in its permissions). spnavcfg is the tuning GUI.
+# ---------------------------------------------------------------------------
+drivers_spacemouse() {
+    say "Setting up 3Dconnexion SpaceMouse support (spacenavd)..."
+    case "$DISTRO" in
+        arch|artix)
+            pi libspnav
+            aur spacenavd spnavcfg
+            ;;
+        suse)
+            pi spacenavd   # no spnavcfg package on Tumbleweed
+            ;;
+        *)
+            pi spacenavd spnavcfg
+            ;;
+    esac
+
+    # Desktop/browser apps that open the device directly (WebHID: Onshape)
+    # need hidraw access; uaccess hands it to the logged-in seat user.
+    sudo tee /etc/udev/rules.d/70-spacemouse.rules >/dev/null <<'EOF'
+# 3Dconnexion devices (SpaceMouse Compact 256f:c635 and friends) - linux-mod
+KERNEL=="hidraw*", ATTRS{idVendor}=="256f", TAG+="uaccess"
+EOF
+    sudo udevadm control --reload-rules 2>/dev/null || true
+    sudo udevadm trigger --subsystem-match=hidraw 2>/dev/null || true
+
+    svc_enable spacenavd || say "Start the daemon by hand with 'sudo spacenavd' until a service exists."
+
+    if [ "$DRY_RUN" -eq 0 ] && command_exists lsusb && ! lsusb -d 256f: >/dev/null 2>&1; then
+        say "No 3Dconnexion device plugged in right now; spacenavd picks it up on hotplug."
+    fi
+    ok "SpaceMouse support installed. Tune it with spnavcfg."
 }
 
 # ---------------------------------------------------------------------------

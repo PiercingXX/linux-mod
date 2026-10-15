@@ -40,7 +40,7 @@ gnome_extensions_install() {
                gnome-shell-extension-pop-shell gnome-shell-extension-just-perfection
             ;;
         void)
-            pi gnome-shell-extensions chrome-gnome-shell nodejs npm make typescript perl
+            pi gnome-shell-extensions chrome-gnome-shell nodejs npm make perl
             _ego_install 615    # AppIndicator
             _ego_install 3193   # Blur My Shell
             _ego_install 3843   # Just Perfection
@@ -67,6 +67,7 @@ gnome_extensions_install() {
 
 # brunelli/gnome-shell-extension-installer wrapper (installs by e.g.o ID)
 _ego_install() {
+    if [ "$DRY_RUN" -eq 1 ]; then dry "install GNOME extension #$1 (extensions.gnome.org)"; return 0; fi
     local installer="$HOME/.local/bin/gnome-shell-extension-installer"
     if [ ! -x "$installer" ]; then
         mkdir -p "$HOME/.local/bin"
@@ -81,6 +82,15 @@ _ego_install() {
 _build_pop_shell() {
     if [ "$DRY_RUN" -eq 1 ]; then dry "build Pop Shell from source (branch by GNOME version)"; return 0; fi
     say "Building Pop Shell from source..."
+    # Its Makefile compiles with tsc
+    if ! command_exists tsc; then
+        case "$DISTRO" in
+            debian) pi node-typescript ;;
+            void)   ;;   # not packaged; npm below
+            *)      pi typescript ;;
+        esac
+        command_exists tsc || sudo npm install -g typescript || warn "TypeScript (tsc) unavailable; Pop Shell will not build."
+    fi
     local gnome_major branch tmp
     gnome_major=$(gnome-shell --version 2>/dev/null | grep -oE '[0-9]+' | head -1)
     case "${gnome_major:-0}" in

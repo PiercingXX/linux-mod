@@ -43,7 +43,9 @@ mark_done()   { [ "$DRY_RUN" -eq 1 ] && return 0; mkdir -p "$STATE_DIR"; touch "
 is_done()     { [ -f "$STATE_DIR/$1.done" ]; }
 reset_state() { command rm -rf "$STATE_DIR"; ok "Install state cleared."; }
 
-# step <function> : run a module step once; skip on rerun, record on success
+# step <function> : run a module step once; skip on rerun, record on success.
+# Module functions return nonzero on a critical failure (repo setup, dotfile
+# clone...) so a resumed run retries them; skipped optional packages don't.
 step() {
     local marker="$1-$DISTRO-$PROFILE"
     if is_done "$marker"; then
@@ -59,14 +61,17 @@ step() {
 
 # install_summary lives in lib/ui.sh (gum table / branded block)
 
+# type -P: real binaries only, so --dry-run's shadow functions (git, cargo,
+# flatpak...) don't make a dry run take different branches than a real one
 command_exists() {
-    command -v "$1" >/dev/null 2>&1
+    type -P "$1" >/dev/null 2>&1
 }
 
 # Keep sudo credentials fresh for the duration of the script
 cache_sudo_credentials() {
     echo "Caching sudo credentials for script execution..."
-    sudo -v
+    # doas-sudo-shim (Alpine) has no -v
+    sudo -v 2>/dev/null || sudo true
     (while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &)
 }
 

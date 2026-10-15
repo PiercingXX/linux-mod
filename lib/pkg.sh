@@ -6,6 +6,9 @@
 # Sets: DISTRO (arch|artix|debian|fedora|void|suse|alpine)
 #       PKG    (pacman|apt|dnf|xbps|zypper|apk)
 #       INIT   (systemd|runit|openrc|s6|dinit)
+#       OS_ID / OS_CODENAME / OS_UBUNTU_CODENAME - raw os-release values, so
+#       modules can tell Debian proper from Ubuntu/Pop/Mint (all DISTRO=debian)
+#       LIBC   (glibc|musl) - Alpine and void-musl can't run glibc binaries
 detect_distro() {
     local id="" id_like=""
     if [ -r /etc/os-release ]; then
@@ -13,6 +16,10 @@ detect_distro() {
         . /etc/os-release
         id="${ID:-}"; id_like="${ID_LIKE:-}"
     fi
+    OS_ID="$id"
+    OS_VERSION_ID="${VERSION_ID:-}"
+    OS_CODENAME="${VERSION_CODENAME:-}"
+    OS_UBUNTU_CODENAME="${UBUNTU_CODENAME:-}"
 
     case "$id" in
         artix)                       DISTRO="artix" ;;
@@ -59,7 +66,12 @@ detect_distro() {
         INIT="unknown"
     fi
 
-    export DISTRO PKG INIT
+    LIBC="glibc"
+    if [ "$DISTRO" = "alpine" ] || ldd --version 2>&1 | grep -qi musl; then
+        LIBC="musl"
+    fi
+
+    export DISTRO PKG INIT OS_ID OS_VERSION_ID OS_CODENAME OS_UBUNTU_CODENAME LIBC
 }
 
 pkg_update() {
@@ -76,56 +88,58 @@ pkg_update() {
 
 # pi pkg... : install packages, tolerating individually-missing ones.
 # Unified modules pass distro-appropriate names; anything a repo doesn't
-# carry is skipped with a warning instead of aborting the run.
+# carry is skipped with a warning instead of aborting the run. Returns 1 if
+# any package was skipped, so `pi a || pi b` fallbacks actually fire.
 pi() {
     [ $# -gt 0 ] || return 0
     if [ "${DRY_RUN:-0}" -eq 1 ]; then dry "install ($PKG): $*"; return 0; fi
+    local p rc=0
     case "$PKG" in
         pacman)
             if ! sudo pacman -S --needed --noconfirm "$@"; then
-                local p
                 for p in "$@"; do
-                    sudo pacman -S --needed --noconfirm "$p" || warn "Skipping unavailable package: $p"
+                    sudo pacman -S --needed --noconfirm "$p" || { warn "Skipping unavailable package: $p"; rc=1; }
                 done
             fi ;;
         apt)
             if ! sudo apt install -y "$@"; then
-                local p
                 for p in "$@"; do
-                    sudo apt install -y "$p" || warn "Skipping unavailable package: $p"
+                    sudo apt install -y "$p" || { warn "Skipping unavailable package: $p"; rc=1; }
                 done
             fi ;;
         dnf)
-            sudo dnf install -y --skip-unavailable "$@" \
-                || sudo dnf install -y --skip-broken "$@" \
-                || {
-                    local p
-                    for p in "$@"; do
-                        sudo dnf install -y "$p" || warn "Skipping unavailable package: $p"
-                    done
-                } ;;
+            # --skip-unavailable exits 0 with packages missing; check each after
+            if sudo dnf install -y --skip-unavailable "$@" || sudo dnf install -y --skip-broken "$@"; then
+                for p in "$@"; do
+                    case "$p" in @*|*/*) continue ;; esac   # groups / URLs / paths
+                    rpm -q --whatprovides "$p" >/dev/null 2>&1 \
+                        || { warn "Skipping unavailable package: $p"; rc=1; }
+                done
+            else
+                for p in "$@"; do
+                    sudo dnf install -y "$p" || { warn "Skipping unavailable package: $p"; rc=1; }
+                done
+            fi ;;
         xbps)
             if ! sudo xbps-install -Sy "$@"; then
-                local p
                 for p in "$@"; do
-                    sudo xbps-install -Sy "$p" || warn "Skipping unavailable package: $p"
+                    sudo xbps-install -Sy "$p" || { warn "Skipping unavailable package: $p"; rc=1; }
                 done
             fi ;;
         zypper)
             if ! sudo zypper -n install --no-recommends "$@"; then
-                local p
                 for p in "$@"; do
-                    sudo zypper -n install --no-recommends "$p" || warn "Skipping unavailable package: $p"
+                    sudo zypper -n install --no-recommends "$p" || { warn "Skipping unavailable package: $p"; rc=1; }
                 done
             fi ;;
         apk)
             if ! sudo apk add "$@"; then
-                local p
                 for p in "$@"; do
-                    sudo apk add "$p" || warn "Skipping unavailable package: $p"
+                    sudo apk add "$p" || { warn "Skipping unavailable package: $p"; rc=1; }
                 done
             fi ;;
     esac
+    return "$rc"
 }
 
 pkg_install_quiet() {
@@ -174,21 +188,59 @@ aur() { # aur pkg...
     case "$DISTRO" in arch|artix) ;; *) return 0 ;; esac
     if [ "${DRY_RUN:-0}" -eq 1 ]; then dry "AUR install: $*"; return 0; fi
     ensure_paru || { warn "paru unavailable; skipping AUR packages: $*"; return 1; }
-    paru -S --needed --noconfirm "$@" || warn "AUR install had errors: $*"
+    paru -S --needed --noconfirm "$@" && return 0
+    # One bad package fails the whole transaction; retry singly so the rest land
+    local p rc=0
+    for p in "$@"; do
+        paru -S --needed --noconfirm "$p" || { warn "AUR install failed: $p"; rc=1; }
+    done
+    return "$rc"
 }
 
 # ---------------------------------------------------------------------------
 # Service management across systemd / runit / openrc / dinit / s6
-# svc_enable <systemd-name> [alt-name ...]  - first existing name wins
+# svc_enable [--boot] <systemd-name> [alt-name ...]  - first existing name wins
+# svc_disable [--boot] <name> ...
+#   --boot: change what starts at boot only; leave the running state alone
+#   (systemd only - other inits fall back to their normal behavior)
 # ---------------------------------------------------------------------------
-svc_enable() {
+
+# svc_exists <name>... : true when any of the names is a known service
+svc_exists() {
     local name
-    if [ "${DRY_RUN:-0}" -eq 1 ]; then dry "enable service ($INIT): $*"; return 0; fi
+    for name in "$@"; do
+        case "$INIT" in
+            systemd) systemctl list-unit-files "${name}.service" --no-legend 2>/dev/null | grep -q . && return 0 ;;
+            runit)   [ -d "/etc/sv/$name" ] && return 0 ;;
+            openrc)  [ -x "/etc/init.d/$name" ] && return 0 ;;
+            dinit)   [ -f "/etc/dinit.d/$name" ] && return 0 ;;
+            s6)      [ -d "/etc/s6/sv/$name" ] && return 0 ;;
+        esac
+    done
+    return 1
+}
+
+# svc_running <name> : true when the service is up right now
+svc_running() {
+    case "$INIT" in
+        systemd) systemctl is-active --quiet "$1" 2>/dev/null ;;
+        runit)   [ -e "/var/service/$1" ] || [ -e "/etc/runit/runsvdir/current/$1" ] \
+                     || [ -e "/run/runit/service/$1" ] ;;
+        openrc)  rc-service "$1" status >/dev/null 2>&1 ;;
+        dinit)   dinitctl is-started "$1" >/dev/null 2>&1 ;;
+        *)       return 1 ;;
+    esac
+}
+
+svc_enable() {
+    local name now=(--now) when=""
+    [ "${1:-}" = "--boot" ] && { now=(); when=" (from next boot)"; shift; }
+    if [ "${DRY_RUN:-0}" -eq 1 ]; then dry "enable service ($INIT): $*$when"; return 0; fi
     case "$INIT" in
         systemd)
             for name in "$@"; do
                 if systemctl list-unit-files "${name}.service" --no-legend 2>/dev/null | grep -q .; then
-                    sudo systemctl enable --now "$name" && return 0
+                    sudo systemctl enable "${now[@]}" "$name" && return 0
                 fi
             done ;;
         runit)
@@ -233,13 +285,15 @@ svc_enable() {
 }
 
 svc_disable() {
-    local name
-    if [ "${DRY_RUN:-0}" -eq 1 ]; then dry "disable service ($INIT): $*"; return 0; fi
+    local name now=(--now) when=""
+    [ "${1:-}" = "--boot" ] && { now=(); when=" (from next boot)"; shift; }
+    if [ "${DRY_RUN:-0}" -eq 1 ]; then dry "disable service ($INIT): $*$when"; return 0; fi
     for name in "$@"; do
         case "$INIT" in
-            systemd) sudo systemctl disable --now "$name" 2>/dev/null || true ;;
+            systemd) sudo systemctl disable "${now[@]}" "$name" 2>/dev/null || true ;;
             runit)   sudo rm -f "/var/service/$name" "/etc/runit/runsvdir/current/$name" "/etc/runit/runsvdir/default/$name" 2>/dev/null || true ;;
-            openrc)  sudo rc-update del "$name" default 2>/dev/null || true
+            openrc)  sudo rc-update del "$name" boot 2>/dev/null || true   # networking lives in boot
+                     sudo rc-update del "$name" default 2>/dev/null || true
                      sudo rc-service "$name" stop 2>/dev/null || true ;;
             dinit)   sudo dinitctl disable "$name" 2>/dev/null || true ;;
         esac

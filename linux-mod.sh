@@ -12,6 +12,7 @@
 #         ./linux-mod.sh --full          run the full install non-interactively
 #         ./linux-mod.sh --mini          run the mini install non-interactively
 #         ./linux-mod.sh --wm list       after --full/--mini, install these WMs
+#         ./linux-mod.sh --spacemouse    after --full/--mini, add SpaceMouse support
 #         ./linux-mod.sh --dry-run       print actions instead of executing
 #         ./linux-mod.sh --reset-state   forget completed steps and start fresh
 #         ./linux-mod.sh --no-color      plain output (NO_COLOR env also works)
@@ -29,6 +30,7 @@ export LINUX_MOD_ROOT
 UNATTENDED=0
 ACTION=""
 WM_FLAGS=""
+SPACEMOUSE=0
 for arg in "$@"; do
     case "$arg" in
         --full)        ACTION="full"; UNATTENDED=1 ;;
@@ -36,11 +38,12 @@ for arg in "$@"; do
         --dry-run)     DRY_RUN=1 ;;
         --reset-state) ACTION="${ACTION:-reset-state}" ;;
         --no-color)    NO_COLOR=1 ;;
+        --spacemouse)  SPACEMOUSE=1 ;;
         --wm)          ;; # value is the next arg; handled below
         --wm=*)        WM_FLAGS="${arg#--wm=}" ;;
         update)        ACTION="update" ;;
         -h|--help)
-            sed -n '3,22p' "$0" | sed 's/^# \{0,1\}//'
+            sed -n '3,23p' "$0" | sed 's/^# \{0,1\}//'
             exit 0 ;;
         *)
             if [ "${prev:-}" = "--wm" ]; then
@@ -90,7 +93,7 @@ fi
 # primitives short-circuit in lib/pkg.sh; this net catches the direct calls.
 # ---------------------------------------------------------------------------
 if [ "$DRY_RUN" -eq 1 ]; then
-    sudo()    { dry "sudo $*"; }
+    sudo()    { dry "sudo $*" >&2; }   # stderr: survives `sudo tee ... >/dev/null`
     flatpak() { dry "flatpak $*"; }
     makepkg() { dry "makepkg $*"; }
     cargo()   { dry "cargo $*"; }
@@ -125,7 +128,7 @@ done
 # --wm hyprland,gnome -> dispatch names used by wm.sh
 # ---------------------------------------------------------------------------
 wm_from_flag() {
-    local raw IFS=',' item
+    local raw item items=()
     raw=$(echo "$1" | tr '[:upper:]' '[:lower:]')
     IFS=',' read -ra items <<< "$raw"
     for item in "${items[@]}"; do
@@ -169,8 +172,18 @@ run_mini_install() {
     finish_install
 }
 
+# Say so when a 3Dconnexion device (USB vendor 256f) is already plugged in
+_spacemouse_prompt() {
+    if command_exists lsusb && lsusb -d 256f: >/dev/null 2>&1; then
+        echo "SpaceMouse detected. Install 3Dconnexion SpaceMouse support (spacenavd)?"
+    else
+        echo "Install 3Dconnexion SpaceMouse support (spacenavd)?"
+    fi
+}
+
+# Login manager after the WM pick (so GNOME's gdm exists), and the
+# NetworkManager handoff last, once nothing else needs to download
 finish_install() {
-    configure_login_manager
     ok "${DISTRO^} ${PROFILE} install complete."
 
     if [ "$UNATTENDED" -eq 1 ]; then
@@ -179,6 +192,9 @@ finish_install() {
         else
             say "No desktop installed. Pass --wm hyprland,gnome (or open the menu) when you want one."
         fi
+        configure_login_manager
+        [ "$SPACEMOUSE" -eq 1 ] && drivers_spacemouse
+        network_handoff
         install_summary
         say "Reboot when ready."
         return 0
@@ -186,9 +202,14 @@ finish_install() {
 
     ui_screen "pick at least one desktop or window manager"
     wm_menu
+    configure_login_manager
+    if ui_confirm "$(_spacemouse_prompt)"; then
+        drivers_spacemouse
+    fi
     if ui_confirm "Install gaming stuff?"; then
         extras_gaming
     fi
+    network_handoff
     install_summary
     if ui_confirm "Reboot now?"; then
         [ "$DRY_RUN" -eq 1 ] && { dry "reboot"; return 0; }

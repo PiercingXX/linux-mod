@@ -126,10 +126,12 @@ http://ppa.launchpad.net/agornostal/ulauncher/ubuntu noble main" \
 }
 
 _apps_protonvpn_deb() {
-    local deb="protonvpn-beta-release_1.0.8_all.deb"
-    wget -q "https://repo.protonvpn.com/debian/dists/stable/main/binary-all/${deb}" -O "/tmp/$deb" \
-        && sudo dpkg -i "/tmp/$deb" && sudo apt update && pi proton-vpn-gnome-desktop
-    command rm -f "/tmp/$deb"
+    if [ "$DRY_RUN" -eq 1 ]; then dry "add ProtonVPN stable apt repo + install proton-vpn-gnome-desktop"; return 0; fi
+    local deb="protonvpn-stable-release_1.0.8_all.deb" tmp
+    tmp=$(mktemp -d)
+    wget -q "https://repo.protonvpn.com/debian/dists/stable/main/binary-all/${deb}" -O "$tmp/$deb" \
+        && sudo dpkg -i "$tmp/$deb" && sudo apt update && pi proton-vpn-gnome-desktop
+    command rm -rf "$tmp"
 }
 
 _apps_yazi() {
@@ -150,6 +152,9 @@ _apps_yazi() {
         debian) pi ffmpeg poppler-utils fd-find ripgrep fzf zoxide imagemagick
                 pi 7zip || pi p7zip-full ;;
         void)   pi ffmpeg 7zip jq poppler fd ripgrep fzf zoxide ImageMagick ;;
+        fedora) pi ffmpeg 7zip jq poppler-utils fd-find ripgrep fzf zoxide ImageMagick ;;
+        alpine) pi ffmpeg 7zip jq poppler-utils fd ripgrep fzf zoxide imagemagick ;;
+        suse)   pi ffmpeg 7zip jq poppler-tools fd ripgrep fzf zoxide ImageMagick ;;
         *)      pi ffmpeg 7zip jq poppler fd ripgrep fzf zoxide imagemagick ;;
     esac
     if command_exists ya; then
@@ -178,7 +183,8 @@ _apps_neovim() {
             aur lua51 python-pynvim neovim-nightly-bin
             ;;
         debian)
-            pi cmake ninja-build gettext unzip curl build-essential lua5.4 python3-pip chafa ripgrep
+            pi cmake ninja-build gettext unzip curl build-essential lua5.4 python3-pip \
+               python3-pynvim chafa ripgrep
             if [ "$DRY_RUN" -eq 1 ]; then dry "build Neovim nightly from source"; return 0; fi
             local tmp; tmp=$(mktemp -d)
             if git clone --depth 1 --branch nightly https://github.com/neovim/neovim.git "$tmp/neovim"; then
@@ -191,16 +197,22 @@ _apps_neovim() {
             sudo chmod 644 /etc/profile.d/local-path.sh
             ;;
         fedora)
-            pi neovim luarocks python3-pip nodejs
+            pi neovim luarocks python3-pip python3-neovim nodejs
             sudo dnf copr enable -y atim/lazygit && pi lazygit
             sudo npm install -g neovim @mermaid-js/mermaid-cli 2>/dev/null || true
             ;;
-        void|suse|alpine)
-            pi neovim nodejs ripgrep chafa
-            pi python3-pip || pi py3-pip || true
+        void|suse)
+            pi neovim nodejs ripgrep chafa python3-pip python3-neovim
+            ;;
+        alpine)
+            pi neovim nodejs ripgrep chafa py3-pip py3-pynvim
             ;;
     esac
-    python3 -m pip install --user --upgrade pynvim 2>/dev/null || true
+    # pip only as a last resort: distro Pythons are externally managed (PEP 668)
+    if [ "$DRY_RUN" -eq 0 ] && ! python3 -c 'import pynvim' 2>/dev/null; then
+        python3 -m pip install --user --upgrade pynvim 2>/dev/null \
+            || warn "pynvim not installed (no distro package, pip refused)."
+    fi
 }
 
 _apps_editors() {
@@ -212,7 +224,9 @@ _apps_editors() {
             ;;
         debian)
             # MS repo instead of the old hardcoded .deb
-            if ! command_exists code; then
+            if [ "$DRY_RUN" -eq 1 ]; then
+                dry "add Microsoft VSCode apt repo + install code"
+            elif ! command_exists code; then
                 wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor \
                     | sudo tee /usr/share/keyrings/ms-vscode.gpg >/dev/null
                 echo "deb [arch=amd64 signed-by=/usr/share/keyrings/ms-vscode.gpg] https://packages.microsoft.com/repos/code stable main" \
@@ -236,8 +250,11 @@ EOF
             fi
             ;;
         void)
-            # Native VSCode tarball into ~/.local/opt (from void-mod)
-            if [ "$DRY_RUN" -eq 0 ] && [ ! -x "$HOME/.local/opt/vscode/bin/code" ]; then
+            # Native VSCode tarball into ~/.local/opt (from void-mod); it's a
+            # glibc build, so void-musl gets the flatpak like Alpine
+            if [ "$LIBC" = "musl" ]; then
+                fp com.visualstudio.code
+            elif [ "$DRY_RUN" -eq 0 ] && [ ! -x "$HOME/.local/opt/vscode/bin/code" ]; then
                 local tmp; tmp=$(mktemp -d)
                 if wget -qO "$tmp/vscode.tar.gz" "https://update.code.visualstudio.com/latest/linux-x64/stable"; then
                     mkdir -p "$HOME/.local/opt/vscode" "$HOME/.local/bin"
@@ -272,10 +289,11 @@ _apps_networking() {
             ;;
         debian)
             run_remote_installer "tailscale" https://tailscale.com/install.sh
-            local deb="synology-drive-client-17885.x86_64.deb"
-            wget -q "https://global.download.synology.com/download/Utility/SynologyDriveClient/4.0.1-17885/Ubuntu/Installer/${deb}" -O "/tmp/$deb" \
-                && sudo dpkg -i "/tmp/$deb"; sudo apt --fix-broken install -y
-            command rm -f "/tmp/$deb"
+            local deb="synology-drive-client-17885.x86_64.deb" tmp
+            tmp=$(mktemp -d)
+            wget -q "https://global.download.synology.com/download/Utility/SynologyDriveClient/4.0.1-17885/Ubuntu/Installer/${deb}" -O "$tmp/$deb" \
+                && sudo dpkg -i "$tmp/$deb"; sudo apt --fix-broken install -y
+            command rm -rf "$tmp"
             ;;
         fedora)
             run_remote_installer "tailscale" https://tailscale.com/install.sh
@@ -299,22 +317,37 @@ _apps_full_only() {
         arch|artix)
             pi docker docker-compose clamav
             svc_enable docker
+            # clamd won't start without signatures: fetch them first, then
+            # hand updates to the freshclam service
+            sudo freshclam 2>/dev/null || warn "freshclam could not fetch ClamAV signatures yet."
             svc_enable clamav-freshclam freshclam
             svc_enable clamav-daemon clamd
-            sudo freshclam 2>/dev/null || true
             sudo usermod -aG docker "$username" || true
             ;;
         debian)
             pi apt-transport-https ca-certificates curl gnupg lsb-release
             if ! command_exists docker; then
+                # Docker publishes Debian and Ubuntu repos; Pop/Mint ride on
+                # Ubuntu's codename (Mint's own, e.g. 'wilma', 404s)
+                local dist="debian" code="$OS_CODENAME"
+                if [ "$OS_ID" != "debian" ]; then
+                    dist="ubuntu"; code="${OS_UBUNTU_CODENAME:-$OS_CODENAME}"
+                fi
                 sudo install -m 0755 -d /etc/apt/keyrings
-                curl -fsSL https://download.docker.com/linux/debian/gpg \
-                    | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-                echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+                curl -fsSL "https://download.docker.com/linux/${dist}/gpg" \
+                    | sudo gpg --batch --yes --dearmor -o /etc/apt/keyrings/docker.gpg
+                echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/${dist} ${code} stable" \
                     | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
-                sudo apt update
-                pi docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-                sudo usermod -aG docker "$username" || true
+                if sudo apt update; then
+                    pi docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+                    sudo usermod -aG docker "$username" || true
+                else
+                    # A dead repo would break every later apt update
+                    warn "Docker repo for ${dist}/${code} failed; removing it. Falling back to docker.io."
+                    sudo rm -f /etc/apt/sources.list.d/docker.list
+                    sudo apt update
+                    pi docker.io docker-compose && sudo usermod -aG docker "$username"
+                fi
             fi
             run_remote_installer "ollama" https://ollama.com/install.sh
             ;;

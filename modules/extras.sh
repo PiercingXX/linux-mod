@@ -23,28 +23,48 @@ extras_menu() {
 }
 
 # ---------------------------------------------------------------------------
-# Printers: Canon D530 laser + Omezizy/XPrinter label printer
-# Unified from the four install-printers.sh variants.
+# Printers: Canon D530 laser, Canon MG3600 inkjet, Epson ET-4800 EcoTank,
+# Omezizy/XPrinter label printer. Unified from the four install-printers.sh
+# variants.
 # ---------------------------------------------------------------------------
 CANON_PRINTER_NAME="${CANON_PRINTER_NAME:-Canon-D530}"
+MG3600_QUEUE_NAME="${MG3600_QUEUE_NAME:-Canon-MG3600}"
+EPSON_QUEUE_NAME="${EPSON_QUEUE_NAME:-Epson_ET-4800}"
 OMEZIZY_QUEUE_NAME="${OMEZIZY_QUEUE_NAME:-Omezizy_Label}"
 OMEZIZY_MODEL_NAME="${OMEZIZY_MODEL_NAME:-XP-420B}"
 
 printers_menu() {
     local choice
     choice=$(ui_choose "Select a printer to configure:" \
-        "Canon D530" "Omezizy Label Printer" "Both" "Back") || return 0
+        "Canon D530" "Canon MG3600" "Epson ET-4800" "Omezizy Label Printer" "All" "Back") || return 0
     case "$choice" in
         "Canon D530")            printers_canon ;;
+        "Canon MG3600")          printers_mg3600 ;;
+        "Epson ET-4800")         printers_epson ;;
         "Omezizy Label Printer") printers_omezizy ;;
-        "Both")                  printers_canon; printers_omezizy ;;
+        "All")                   printers_canon; printers_mg3600; printers_epson; printers_omezizy ;;
     esac
+}
+
+# First installed driver (lpinfo -m) whose line matches <regex>
+_printers_model() {
+    lpinfo -m 2>/dev/null | grep -iE "$1" | head -n1 | awk '{print $1}'
+}
+
+# First connected device URI (lpinfo -v) matching <regex>
+_printers_uri() {
+    lpinfo -v 2>/dev/null | awk -v re="$1" '$2 ~ re {print $2; exit}'
 }
 
 _printers_cups_up() {
     pi cups cups-filters ghostscript usbutils
+    # Broad driver set, a "print to PDF" queue, and the printer settings GUI
     case "$DISTRO" in
-        debian) pi cups-client cups-bsd ;;
+        debian) pi cups-client cups-bsd printer-driver-gutenprint printer-driver-cups-pdf system-config-printer ;;
+        fedora) pi gutenprint-cups cups-pdf system-config-printer ;;
+        alpine) pi gutenprint-cups system-config-printer ;;
+        arch|artix) pi gutenprint cups-pdf cups-pk-helper system-config-printer ;;
+        *)      pi gutenprint cups-pdf system-config-printer ;;
     esac
     svc_enable cups cupsd org.cups.cupsd
     sudo modprobe usblp 2>/dev/null || true
@@ -93,8 +113,10 @@ printers_canon() {
     _printers_restart_cups
 
     # Find the device URI: lpinfo first, lsusb (Canon vendor 04a9) fallback
+    # Canon's own UFRII backend first (more reliable than plain usb:// here)
     local uri
-    uri=$(lpinfo -v 2>/dev/null | awk '/usb:\/\/Canon/{print $2; exit}')
+    uri=$(_printers_uri '^cnusbufr2:')
+    [ -n "$uri" ] || uri=$(_printers_uri '^usb://Canon/D5[36]0')
     if [ -z "$uri" ] && lsusb -d 04a9:2775 >/dev/null 2>&1; then
         local serial
         serial=$(sudo lsusb -v -d 04a9:2775 2>/dev/null | awk '/iSerial/{print $3; exit}')
@@ -102,19 +124,84 @@ printers_canon() {
     fi
     [ -n "$uri" ] || { warn "No Canon D530 detected over USB — plug it in and rerun."; return 1; }
 
-    sudo lpadmin -x "$CANON_PRINTER_NAME" 2>/dev/null || true
-    if [ -n "$ppd" ]; then
-        sudo lpadmin -p "$CANON_PRINTER_NAME" -E -v "$uri" -P "$ppd"
-    else
-        warn "Canon PPD not found; using generic 'everywhere' driver."
-        sudo lpadmin -p "$CANON_PRINTER_NAME" -E -v "$uri" -m everywhere
+    # No generic fallback: 'everywhere' needs an IPP printer, and the D530
+    # only speaks Canon's UFRII LT over USB
+    if [ -z "$ppd" ]; then
+        warn "Canon UFRII LT driver not installed (CNRCUPSD560 PPD). Get it from Canon's D530 support page and rerun."
+        return 1
     fi
+    sudo lpadmin -x "$CANON_PRINTER_NAME" 2>/dev/null || true
+    sudo lpadmin -p "$CANON_PRINTER_NAME" -E -v "$uri" -P "$ppd"
     case "$uri" in usb://*) sudo lpadmin -p "$CANON_PRINTER_NAME" -o usb-no-reattach-default=true ;; esac
     sudo cupsenable "$CANON_PRINTER_NAME" 2>/dev/null || true
     sudo cupsaccept "$CANON_PRINTER_NAME" 2>/dev/null || true
     sudo lpoptions -d "$CANON_PRINTER_NAME" >/dev/null 2>&1 || true
     _printers_flatpak_portal_fix
     ok "Canon D530 configured (queue: $CANON_PRINTER_NAME)."
+}
+
+# Canon PIXMA MG3600 inkjet: Canon's cnijfilter2 driver on Arch, Gutenprint
+# everywhere else (it ships an MG3600 model).
+printers_mg3600() {
+    if [ "$DRY_RUN" -eq 1 ]; then
+        dry "configure Canon MG3600: cups + cnijfilter2/gutenprint driver, USB detection, lpadmin queue"
+        return 0
+    fi
+    say "Setting up the Canon MG3600 queue..."
+    _printers_cups_up
+    case "$DISTRO" in
+        arch|artix) aur cnijfilter2-mg3600 || warn "cnijfilter2-mg3600 unavailable; falling back to Gutenprint." ;;
+    esac
+    _printers_restart_cups
+
+    local uri
+    uri=$(_printers_uri '^cnijbe2://Canon/.*port=usb')
+    [ -n "$uri" ] || uri=$(_printers_uri '^usb://Canon/MG3600')
+    [ -n "$uri" ] || { warn "No Canon MG3600 detected over USB — plug it in and rerun."; return 1; }
+
+    local model
+    model=$(_printers_model 'canonmg3600\.ppd')
+    [ -n "$model" ] || model=$(_printers_model 'MG3600.*Gutenprint')
+    [ -n "$model" ] || { warn "No Canon MG3600 driver found (cnijfilter2-mg3600 or Gutenprint)."; return 1; }
+
+    sudo lpadmin -x "$MG3600_QUEUE_NAME" 2>/dev/null || true
+    sudo lpadmin -p "$MG3600_QUEUE_NAME" -E -v "$uri" -m "$model" -D "Canon MG3600" -o printer-is-shared=false
+    sudo cupsenable "$MG3600_QUEUE_NAME" 2>/dev/null || true
+    sudo cupsaccept "$MG3600_QUEUE_NAME" 2>/dev/null || true
+    _printers_flatpak_portal_fix
+    ok "Canon MG3600 configured (queue: $MG3600_QUEUE_NAME, driver: $model)."
+}
+
+# Epson EcoTank ET-4800: Epson's ESC/P-R driver
+printers_epson() {
+    if [ "$DRY_RUN" -eq 1 ]; then
+        dry "configure Epson ET-4800: cups + ESC/P-R driver, USB detection, lpadmin queue"
+        return 0
+    fi
+    say "Setting up the Epson ET-4800 queue..."
+    _printers_cups_up
+    case "$DISTRO" in
+        arch|artix) aur epson-inkjet-printer-escpr ;;
+        debian)     pi printer-driver-escpr ;;
+        *)          pi epson-inkjet-printer-escpr ;;
+    esac
+    _printers_restart_cups
+
+    local uri
+    uri=$(_printers_uri '^usb://EPSON/ET-4800')
+    [ -n "$uri" ] || { warn "No Epson ET-4800 detected over USB — plug it in and rerun."; return 1; }
+
+    local model
+    model=$(_printers_model 'ET-4800.*ESC/P-R')
+    [ -n "$model" ] || model=$(_printers_model 'ET-4800')
+    [ -n "$model" ] || { warn "No Epson ET-4800 driver found (epson-inkjet-printer-escpr)."; return 1; }
+
+    sudo lpadmin -x "$EPSON_QUEUE_NAME" 2>/dev/null || true
+    sudo lpadmin -p "$EPSON_QUEUE_NAME" -E -v "$uri" -m "$model" -D "Epson EcoTank ET-4800" -L "USB"
+    sudo cupsenable "$EPSON_QUEUE_NAME" 2>/dev/null || true
+    sudo cupsaccept "$EPSON_QUEUE_NAME" 2>/dev/null || true
+    _printers_flatpak_portal_fix
+    ok "Epson ET-4800 configured (queue: $EPSON_QUEUE_NAME, driver: $model)."
 }
 
 printers_omezizy() {
@@ -175,20 +262,27 @@ extras_gaming() {
                lib32-openssl lib32-sdl2
             pi vulkan-radeon lib32-vulkan-radeon || true
             if lspci 2>/dev/null | grep -qi nvidia; then
-                pi nvidia nvidia-utils lib32-nvidia-utils
+                nvidia_arch_driver || true
             fi
             ;;
         debian)
             sudo dpkg --add-architecture i386 && sudo apt update
-            local deb="steam.deb"
-            wget -q "https://steamcdn-a.akamaihd.net/client/installer/steam.deb" -O "/tmp/$deb" \
-                && sudo dpkg -i "/tmp/$deb"; sudo apt --fix-broken install -y
-            command rm -f "/tmp/$deb"
+            local tmp; tmp=$(mktemp -d)
+            wget -q "https://steamcdn-a.akamaihd.net/client/installer/steam.deb" -O "$tmp/steam.deb" \
+                && sudo dpkg -i "$tmp/steam.deb"; sudo apt --fix-broken install -y
+            command rm -rf "$tmp"
             ;;
         fedora)
             pi steam   # via RPM Fusion nonfree
             ;;
         void)
+            if [ "$LIBC" = "musl" ]; then
+                say "No multilib/Steam on void-musl; installing the flatpak."
+                fp com.valvesoftware.Steam
+                fp com.discordapp.Discord
+                ok "Gaming stuff installed."
+                return 0
+            fi
             pi void-repo-multilib void-repo-multilib-nonfree
             sudo xbps-install -S
             pi glibc-32bit libstdc++-32bit libgcc-32bit
@@ -213,10 +307,8 @@ extras_gaming() {
 # ---------------------------------------------------------------------------
 extras_cosmic() {
     say "Installing Cosmic Desktop..."
-    sudo dnf update -y
-    sudo dnf copr enable -y ryanabx/cosmic-epoch
-    sudo dnf update -y
-    pi cosmic-desktop
+    # COSMIC is in the official Fedora repos now (the old COPR says so)
+    pi @cosmic-desktop-environment
     fp dev.edfloreshz.CosmicTweaks
     ok "Cosmic Desktop installed."
 }

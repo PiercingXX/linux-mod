@@ -24,15 +24,19 @@ _wm_x11_stack() {
                        xorg-setxkbmap xorg-xev numlockx feh ;;
         debian)     pi x11-xserver-utils x11-utils xinput x11-xkb-utils numlockx feh xterm xclip ;;
         void)       pi xorg-server xrandr xinput xsetroot xrdb setxkbmap xev numlockx feh ;;
-        alpine)     pi xorg-server xrandr xinput xsetroot xrdb setxkbmap numlockx feh xterm ;;
+        # Alpine's xorg-server has no input/GL drivers or xinit by default
+        alpine)     pi xorg-server xf86-input-libinput mesa-dri-gallium xinit xrandr xinput \
+                       xsetroot xrdb setxkbmap feh xterm ;;
         *)          pi xrandr xinput numlockx feh ;;
     esac
 }
 
 _wm_audio_stack() {
     case "$DISTRO" in
-        void) pi pipewire pipewire-pulse alsa-pipewire alsa-utils wireplumber \
+        void) pi pipewire alsa-pipewire alsa-utils wireplumber \
                  wireplumber-elogind pavucontrol pamixer playerctl easyeffects rtkit brightnessctl ;;
+        alpine) pi pipewire pipewire-pulse wireplumber pavucontrol pamixer playerctl \
+                 easyeffects brightnessctl ;;
         *)    pi pipewire pipewire-pulse wireplumber pavucontrol pamixer playerctl \
                  easyeffects brightnessctl
               pi light || true ;;
@@ -44,6 +48,7 @@ _wm_auth_agent() {
     case "$DISTRO" in
         artix)  pi mate-polkit gnome-keyring ;;
         debian) pi policykit-1-gnome gnome-keyring xdg-user-dirs ;;
+        fedora) pi mate-polkit gnome-keyring ;;   # polkit-gnome left Fedora
         *)      pi polkit-gnome gnome-keyring ;;
     esac
 }
@@ -52,7 +57,7 @@ _wm_file_manager() {
     case "$DISTRO" in
         arch)       pi nautilus; aur nautilus-renamer nautilus-open-any-terminal code-nautilus-git ;;
         artix)      pi thunar thunar-archive-plugin thunar-volman tumbler ;;
-        void)       pi thunar thunar-volman ;;
+        void)       pi Thunar thunar-volman ;;
         *)          pi nautilus ;;
     esac
     pi kitty tmux
@@ -62,6 +67,7 @@ _wm_network_stack() {
     case "$DISTRO" in
         debian) pi network-manager network-manager-gnome bluez blueman ;;
         void)   pi NetworkManager network-manager-applet bluez bluetuith ;;
+        fedora) pi NetworkManager network-manager-applet bluez blueman ;;
         suse)   pi NetworkManager NetworkManager-applet bluez ;;
         alpine) pi networkmanager network-manager-applet bluez ;;
         *)      pi networkmanager network-manager-applet bluez bluez-utils bluetui ;;
@@ -74,12 +80,17 @@ _wm_wayland_utils() {
     case "$DISTRO" in
         debian) pi grim slurp libnotify-bin jq golang-go
                 _wm_compat_shims ;;
-        void)   pi Waybar grim slurp swaync dunst nwg-drawer notification-daemon || true
+        void)   pi Waybar grim slurp SwayNotificationCenter dunst notification-daemon || true
+                _hyprshot_from_github ;;
+        fedora) pi SwayNotificationCenter grim slurp
                 _hyprshot_from_github ;;
         *)      pi swaync notification-daemon
                 aur nwg-drawer hyprshot wl-gammarelay ;;
     esac
-    pi nwg-look nwg-displays dconf || true
+    case "$DISTRO" in
+        void|alpine) pi nwg-look dconf || true ;;   # no nwg-displays there
+        *)           pi nwg-look nwg-displays dconf || true ;;
+    esac
 }
 
 # Only write /usr/local shims when the real binary is missing. Never shadow
@@ -128,6 +139,8 @@ _hyprshot_from_github() {
 }
 
 _wm_offer_dots() {
+    # Unattended runs already applied the dots in the apply_dots step
+    [ "${UNATTENDED:-0}" -eq 1 ] && return 0
     if ui_confirm "Apply PiercingXX dotfiles for this window manager now?"; then
         apply_dots
     fi
@@ -141,9 +154,10 @@ wm_hyprland() {
     _wm_build_deps
     case "$DISTRO" in
         arch|artix)
+            # hyprland-meta-git already pulls the -git hyprlock/hypridle/
+            # hyprpaper/hyprsunset/portal; the repo builds would conflict
             aur hyprland-meta-git hyprcursor-git wlsunset-git
-            pi hyprpaper hyprlock hypridle hyprsunset xdg-desktop-portal-hyprland \
-               xdg-desktop-portal-gtk xdg-user-dirs xdg-utils
+            pi xdg-desktop-portal-gtk xdg-user-dirs xdg-utils
             pi wl-clipboard libdbusmenu-gtk3 gum jq
             [ "$DISTRO" = "artix" ] && { pi seatd elogind; svc_enable seatd; svc_enable elogind; }
             ;;
@@ -151,19 +165,30 @@ wm_hyprland() {
             _wm_hyprland_debian
             ;;
         fedora)
+            # sdegler/hyprland: maintained fork of solopasha/hyprland, which
+            # now builds for rawhide only
             local repo
-            for repo in solopasha/hyprland erikreider/SwayNotificationCenter tofik/nwg-shell; do
+            for repo in sdegler/hyprland erikreider/SwayNotificationCenter tofik/nwg-shell; do
                 sudo dnf copr enable -y "$repo" || true
             done
             sudo dnf update -y
             pi hyprland hyprpaper hyprlock hypridle hyprpolkitagent hyprsunset \
-               wlsunset wl-clipboard grim slurp cliphist swww SwayNotificationCenter
+               xdg-desktop-portal-hyprland wlsunset wl-clipboard grim slurp cliphist \
+               swww SwayNotificationCenter
+            ;;
+        alpine)
+            # hyprland + hyprpolkitagent are in community; the rest is
+            # edge/testing only and gets skipped on stable
+            pi hyprland hyprpolkitagent hyprlock hypridle xdg-desktop-portal-hyprland \
+               xdg-desktop-portal-gtk wl-clipboard grim slurp jq seatd
+            svc_enable seatd
+            sudo addgroup "$username" seat 2>/dev/null || true
             ;;
         void)
-            pi hyprutils hyprlang hyprgraphics aquamarine hyprland hyprpaper hyprlock \
-               hypridle hyprcursor xdg-desktop-portal-hyprland hyprland-qt-support \
-               hyprland-qtutils qt5ct qt6ct
-            pi polkit-gnome seatd elogind dbus mesa mesa-dri
+            # Void's repos don't ship Hyprland (the hyprland-void overlay
+            # stalled at 0.49), so build the same pinned stack as Debian
+            _wm_hyprland_source_build
+            pi qt5ct qt6ct polkit-gnome seatd elogind dbus mesa-dri
             svc_enable seatd; svc_enable elogind; svc_enable dbus
             sudo usermod -aG _seatd "$username" 2>/dev/null || true
             sudo tee /usr/local/bin/start-hyprland >/dev/null <<'EOF'
@@ -200,7 +225,7 @@ _wm_hyprland_debian() {
     if _wm_hyprland_debian_try_packages; then
         return 0
     fi
-    _wm_hyprland_debian_source_build
+    _wm_hyprland_source_build
 }
 
 _wm_debian_apt_prep() {
@@ -264,7 +289,7 @@ _wm_hyprland_debian_try_packages() {
             ok "Hyprland from ${code}-backports."
             return 0
         fi
-        warn "trixie-backports Hyprland install failed — trying other apt, then source."
+        warn "${code}-backports Hyprland install failed — trying other apt, then source."
     fi
 
     cand=$(_wm_apt_hyprland_candidate)
@@ -296,16 +321,7 @@ _wm_cmake_hypr() {
     command rm -rf "$tmp"
 }
 
-_wm_hyprland_debian_source_build() {
-    # Coherent recent stack (matches void-mod pins). Hyprland itself uses
-    # official `make all` — not a generic cmake loop.
-    local hyprland_tag="v0.55.3"
-    if [ "${DRY_RUN:-0}" -eq 1 ]; then
-        dry "build Hyprland ${hyprland_tag} + hypr* stack from source (cmake libs, make all compositor)"
-        return 0
-    fi
-    say "Building Hyprland ${hyprland_tag} from source. This takes a while."
-
+_wm_hyprland_debian_build_deps() {
     pi meson ninja-build cmake cmake-extras build-essential git pkg-config \
        gettext gettext-base fontconfig libfontconfig-dev libffi-dev libxml2-dev \
        libdrm-dev libgbm-dev libegl-dev libgles2 libgles2-mesa-dev \
@@ -319,20 +335,61 @@ _wm_hyprland_debian_source_build() {
        libzip-dev libtomlplusplus-dev libre2-dev libpugixml-dev libmagic-dev \
        libsdbus-c++-dev libpam0g-dev libavutil-dev libavcodec-dev libavformat-dev \
        xwayland qtwayland5
-    pi clang-19
-    command_exists clang++-19 || pi clang-18
-    command_exists clang++-19 || command_exists clang++-18 || pi g++-14 || true
+    # Latest Hyprland wants clang>=19 or gcc>=16
+    pi clang-19 || pi clang-18 || pi g++-14 || true
+}
 
-    # Latest Hyprland wants clang>=19 or gcc>=16. Prefer clang-19 when present.
+# Build deps for the source build, per distro
+_wm_hyprland_source_deps() {
+    case "$DISTRO" in
+        debian) _wm_hyprland_debian_build_deps ;;
+        void)
+            pi base-devel clang ninja meson cmake pkg-config git gettext \
+               wayland-devel wayland-protocols libdrm-devel MesaLib-devel libgbm-devel \
+               libglvnd-devel pixman-devel eudev-libudev-devel libseat-devel seatd \
+               libinput-devel libxkbcommon-devel libxcb-devel xcb-util-wm-devel \
+               xcb-util-renderutil-devel xcb-util-errors-devel xcb-util-image-devel \
+               libXcursor-devel libXrender-devel libXfixes-devel libdisplay-info-devel \
+               hwids glslang cairo-devel pango-devel libjpeg-turbo-devel libwebp-devel \
+               librsvg-devel libjxl-devel libheif-devel libzip-devel tomlplusplus \
+               re2-devel pugixml-devel file-devel sdbus-c++-devel pam-devel ffmpeg-devel \
+               muparser-devel lcms2-devel pipewire-devel libuuid-devel polkit-devel \
+               qt6-base-devel qt6-wayland-devel xorg-server-xwayland
+            ;;
+    esac
+}
+
+# Pick a C++26-capable compiler: clang >= 19 (versioned on Debian, plain on
+# Void), then clang-18, then g++-14 as a last try
+_wm_hyprland_pick_compiler() {
+    local v
     if command_exists clang++-19; then
-        export CC=clang-19 CXX=clang++-19
-    elif command_exists clang++-18; then
+        export CC=clang-19 CXX=clang++-19; return 0
+    fi
+    if command_exists clang++; then
+        v=$(clang++ -dumpversion 2>/dev/null); v="${v%%.*}"
+        if [ "${v:-0}" -ge 19 ]; then export CC=clang CXX=clang++; return 0; fi
+    fi
+    if command_exists clang++-18; then
         export CC=clang-18 CXX=clang++-18
-        warn "clang-19 missing; clang-18 may fail on Hyprland ${hyprland_tag} (C++26)."
+        warn "clang-19 missing; clang-18 may fail on Hyprland (C++26)."
     elif command_exists g++-14; then
         export CC=gcc-14 CXX=g++-14
-        warn "No clang-19; g++-14 may fail on Hyprland ${hyprland_tag}."
+        warn "No clang-19; g++-14 may fail on Hyprland."
     fi
+}
+
+_wm_hyprland_source_build() {
+    # Coherent recent stack (matches void-mod pins). Hyprland itself uses
+    # official `make all` — not a generic cmake loop.
+    local hyprland_tag="v0.55.3"
+    if [ "${DRY_RUN:-0}" -eq 1 ]; then
+        dry "build Hyprland ${hyprland_tag} + hypr* stack from source (cmake libs, make all compositor)"
+        return 0
+    fi
+    say "Building Hyprland ${hyprland_tag} from source. This takes a while."
+    _wm_hyprland_source_deps
+    _wm_hyprland_pick_compiler
 
     _wm_cmake_hypr hyprwayland-scanner https://github.com/hyprwm/hyprwayland-scanner.git v0.4.6
     _wm_cmake_hypr hyprutils            https://github.com/hyprwm/hyprutils.git            v0.13.1
@@ -345,7 +402,7 @@ _wm_hyprland_debian_source_build() {
     tmp=$(mktemp -d)
     say "Installing hyprland-protocols..."
     if git clone --depth 1 --branch v0.7.0 https://github.com/hyprwm/hyprland-protocols.git "$tmp/hyprland-protocols"; then
-        (cd "$tmp/hyprland-protocols" && meson setup build --prefix=/usr && meson install -C build) \
+        (cd "$tmp/hyprland-protocols" && meson setup build --prefix=/usr && sudo meson install -C build) \
             || warn "hyprland-protocols install failed."
     fi
     command rm -rf "$tmp"
@@ -361,8 +418,8 @@ _wm_hyprland_debian_source_build() {
     fi
     command rm -rf "$tmp"
 
-    _wm_cmake_hypr hyprlock  https://github.com/hyprwm/hyprlock.git  v0.5.1
-    _wm_cmake_hypr hypridle  https://github.com/hyprwm/hypridle.git  v0.3.1
+    _wm_cmake_hypr hyprlock  https://github.com/hyprwm/hyprlock.git  v0.9.6
+    _wm_cmake_hypr hypridle  https://github.com/hyprwm/hypridle.git  v0.1.8
     _wm_cmake_hypr hyprpaper https://github.com/hyprwm/hyprpaper.git v0.7.6
     _wm_cmake_hypr xdg-desktop-portal-hyprland \
         https://github.com/hyprwm/xdg-desktop-portal-hyprland.git v1.3.9
@@ -437,9 +494,11 @@ wm_i3() {
             ;;
         void)
             pi i3 i3blocks i3lock i3status picom fuzzel grim slurp wl-clipboard cliphist acpi upower
-            pi nwg-drawer || true
             ;;
-        *)  # suse, alpine, fedora
+        alpine)
+            pi i3wm i3blocks i3lock i3status picom rofi flameshot acpi upower
+            ;;
+        *)  # suse, fedora
             pi i3 i3blocks i3lock i3status picom rofi flameshot acpi upower
             ;;
     esac
@@ -458,7 +517,7 @@ wm_bspwm() {
     say "Installing bspwm..."
     _wm_build_deps
     _wm_x11_stack
-    pi bspwm sxhkd polybar picom hsetroot flameshot sxiv zathura
+    pi bspwm sxhkd polybar picom hsetroot flameshot nsxiv zathura
     case "$DISTRO" in
         arch)
             pi fuzzel fcitx
@@ -477,7 +536,7 @@ wm_bspwm() {
             _wm_compat_shims
             ;;
         void)
-            pi fuzzel xdragon fcitx5
+            pi fuzzel dragon fcitx5
             pi xdo || true
             ;;
         *)  # suse, alpine, fedora
@@ -535,8 +594,8 @@ wm_qtile() {
             ;;
         void)
             pi qtile python3-psutil picom dmenu fuzzel grim slurp wl-clipboard cliphist \
-               i3lock flameshot acpi upower xorg-xinit
-            pi nwg-drawer nitrogen rofi || true
+               i3lock flameshot acpi upower xinit
+            pi nitrogen rofi || true
             ;;
         *)
             pi qtile picom dmenu rofi flameshot acpi upower
@@ -574,10 +633,21 @@ _install_or_build_suckless() {
     command rm -rf "$tmp"
 }
 
+# Xlib/Xft/Xinerama headers the suckless source builds need
+_wm_suckless_deps() {
+    case "$DISTRO" in
+        arch|artix)  pi libx11 libxft libxinerama ;;
+        debian)      pi libx11-dev libxft-dev libxinerama-dev ;;
+        alpine)      pi libx11-dev libxft-dev libxinerama-dev ;;
+        fedora|void|suse) pi libX11-devel libXft-devel libXinerama-devel ;;
+    esac
+}
+
 wm_dwm() {
     say "Installing DWM..."
     _wm_build_deps
     _wm_x11_stack
+    _wm_suckless_deps
     _install_or_build_suckless dwm
     _install_or_build_suckless dmenu
     _install_or_build_suckless st
@@ -656,8 +726,7 @@ _wm_dispatch() {
 }
 
 wm_menu() {
-    local options=()
-    [ "$DISTRO" != "alpine" ] && options+=("Hyprland")
+    local options=("Hyprland")
     options+=("GNOME" "Herbstluftwm" "Sway" "i3" "bspwm" "Awesome" "Qtile" "DWM")
     case "$DISTRO" in
         arch|artix) options+=("BusyBox Profile") ;;

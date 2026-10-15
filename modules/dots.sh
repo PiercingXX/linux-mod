@@ -55,11 +55,13 @@ apply_dots() {
         return 0
     fi
     say "Applying PiercingXX customizations (piercing-dots)..."
-    ensure_piercing_dots
+    # Nonzero return keeps the step unmarked, so a rerun retries it
+    local rc=0
+    ensure_piercing_dots || { warn "Could not clone piercing-dots."; return 1; }
 
     # GNOME polish runs below (now or on first login), so install.sh skips it
     (cd "$PIERCING_DOTS_DIR" && chmod u+x install.sh && PIERCINGXX_SKIP_GNOME=1 ./install.sh) \
-        || warn "piercing-dots install.sh reported errors."
+        || { warn "piercing-dots install.sh reported errors."; rc=1; }
 
     # Bluetooth back on (whatever the init system calls it)
     svc_enable bluetooth bluetoothd || true
@@ -78,9 +80,11 @@ apply_dots() {
     if ! grep -q 'export PATH.*\.local/bin' "$HOME/.bashrc"; then
         printf '%s\n' 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
     fi
-    # shellcheck disable=SC1091
-    source "$HOME/.bashrc" 2>/dev/null || true
+    # Only the PATH matters to the rest of the install; sourcing the whole
+    # .bashrc would run prompt/zoxide init and define aliases in here
+    export PATH="$HOME/.local/bin:$PATH"
 
     cleanup_piercing_dots
     ok "PiercingXX customizations applied!"
+    return "$rc"
 }

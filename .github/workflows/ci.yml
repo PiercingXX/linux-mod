@@ -13,7 +13,9 @@ jobs:
       - name: Install shellcheck
         run: sudo apt-get update && sudo apt-get install -y shellcheck
       - name: Lint
-        run: shellcheck -S error linux-mod.sh lib/*.sh modules/*.sh
+        # SC2034/SC2154: cross-file false positives (colors defined in lib/,
+        # username set in linux-mod.sh) since modules are sourced in a loop
+        run: shellcheck -S warning -e SC2034,SC2154 linux-mod.sh lib/*.sh modules/*.sh
 
   dry-run:
     # Full + mini dry-run inside each supported distro's container.
@@ -46,6 +48,8 @@ jobs:
             setup: apk add bash git
             experimental: true
     name: dry-run (${{ matrix.name }})
+    env:
+      ALL_WMS: hyprland,gnome,herbst,sway,i3,bspwm,awesome,qtile,dwm
     container: ${{ matrix.image }}
     continue-on-error: ${{ matrix.experimental || false }}
     steps:
@@ -57,9 +61,10 @@ jobs:
         run: |
           git clone "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" repo
           cd repo && git checkout "$GITHUB_SHA"
+      # Every WM + the SpaceMouse step: most regressions live in these paths
       - name: Dry-run full install
         shell: bash
-        run: cd repo && ./linux-mod.sh --dry-run --no-color --full
+        run: cd repo && ./linux-mod.sh --dry-run --no-color --full --spacemouse --wm "$ALL_WMS"
       - name: Dry-run mini install
         shell: bash
-        run: cd repo && ./linux-mod.sh --dry-run --no-color --mini
+        run: cd repo && ./linux-mod.sh --dry-run --no-color --mini --spacemouse --wm "$ALL_WMS"
