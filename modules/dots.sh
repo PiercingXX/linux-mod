@@ -49,6 +49,30 @@ NoDisplay=true
 EOF
 }
 
+# The rice lives in .bashrc, so a fish/zsh login shell (CachyOS defaults to
+# fish) never sees it. Interactive runs ask; unattended runs just switch.
+ensure_bash_login_shell() {
+    local current bash_bin
+    current=$(getent passwd "$username" 2>/dev/null | cut -d: -f7)
+    case "$current" in */bash) return 0 ;; esac
+    # Canonical path first (CachyOS also has /usr/sbin/bash via the usrmerge symlink)
+    if [ -x /usr/bin/bash ]; then bash_bin=/usr/bin/bash
+    else bash_bin=$(type -P bash) || return 0
+    fi
+    if [ "${UNATTENDED:-0}" -ne 1 ] \
+        && ! ui_confirm "Your login shell is ${current:-unknown}; the PiercingXX shell config is bash-only. Switch to bash?"; then
+        say "Keeping ${current:-the current shell}; the .bashrc rice applies only when you run bash."
+        return 0
+    fi
+    grep -qx "$bash_bin" /etc/shells 2>/dev/null \
+        || echo "$bash_bin" | sudo tee -a /etc/shells >/dev/null
+    if sudo chsh -s "$bash_bin" "$username"; then
+        ok "Login shell is now bash (takes effect at next login)."
+    else
+        warn "Could not switch the login shell; run: chsh -s $bash_bin"
+    fi
+}
+
 apply_dots() {
     if [ "$DRY_RUN" -eq 1 ]; then
         dry "apply piercing-dots rice: dotfiles, GNOME polish, .bashrc"
@@ -83,6 +107,7 @@ apply_dots() {
     # Only the PATH matters to the rest of the install; sourcing the whole
     # .bashrc would run prompt/zoxide init and define aliases in here
     export PATH="$HOME/.local/bin:$PATH"
+    ensure_bash_login_shell
 
     cleanup_piercing_dots
     ok "PiercingXX customizations applied!"

@@ -70,6 +70,12 @@ cd linux-mod
 Run as your normal user (not root); sudo is requested once and kept alive.
 On Alpine, a stock install has neither: run `doas apk add bash sudo` first
 (and add yourself to `wheel` in `/etc/sudoers`).
+
+The installer runs under bash from any shell, but the piercing-dots shell
+config is bash-only. If your login shell is something else (CachyOS ships
+fish), applying the dots offers to `chsh` you to bash; unattended runs switch
+automatically. Nvidia setup leaves an already-installed kernel module alone
+(e.g. CachyOS's own) and only adds the matching 32-bit userspace.
 Everything is logged to `/tmp/linux-mod.log`, and every run ends with a
 summary table of any warnings.
 

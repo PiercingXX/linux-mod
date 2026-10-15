@@ -96,6 +96,18 @@ _nvidia_arch_branch() {
 # `nvidia-dkms`; dkms builds for whatever kernels are installed (surface,
 # zen, cachyos...), so pull their headers too. Shared with extras_gaming.
 nvidia_arch_driver() {
+    # CachyOS's hardware detection (chwd), or an earlier run, may already
+    # ship a kernel module; a second one conflicts (NVIDIA-MODULE), so just
+    # top up the userspace that matches it
+    if pacman -T NVIDIA-MODULE >/dev/null 2>&1 || modinfo nvidia >/dev/null 2>&1; then
+        say "An Nvidia kernel module is already installed; adding the matching userspace only."
+        if pacman -Q nvidia-580xx-utils >/dev/null 2>&1; then
+            aur lib32-nvidia-580xx-utils
+        else
+            pi nvidia-utils nvidia-settings lib32-nvidia-utils
+        fi
+        return
+    fi
     local headers=() f
     for f in /usr/lib/modules/*/pkgbase; do
         [ -f "$f" ] && headers+=("$(cat "$f")-headers")
