@@ -179,40 +179,105 @@ _apps_neovim() {
     say "Installing Neovim (nightly where possible)..."
     case "$DISTRO" in
         arch|artix)
-            pi nodejs npm ripgrep python python-pip chafa
+            pi nodejs npm ripgrep python python-pip chafa gcc
             aur lua51 python-pynvim neovim-nightly-bin
             ;;
         debian)
             pi cmake ninja-build gettext unzip curl build-essential lua5.4 python3-pip \
                python3-pynvim chafa ripgrep
-            if [ "$DRY_RUN" -eq 1 ]; then dry "build Neovim nightly from source"; return 0; fi
-            local tmp; tmp=$(mktemp -d)
-            if git clone --depth 1 --branch nightly https://github.com/neovim/neovim.git "$tmp/neovim"; then
-                (cd "$tmp/neovim" \
-                    && make CMAKE_BUILD_TYPE=RelWithDebInfo CMAKE_INSTALL_PREFIX=/usr/local/ \
-                    && sudo make install) || warn "Neovim build failed."
+            if [ "$DRY_RUN" -eq 1 ]; then
+                dry "build Neovim nightly from source"
+            else
+                local tmp; tmp=$(mktemp -d)
+                if git clone --depth 1 --branch nightly https://github.com/neovim/neovim.git "$tmp/neovim"; then
+                    (cd "$tmp/neovim" \
+                        && make CMAKE_BUILD_TYPE=RelWithDebInfo CMAKE_INSTALL_PREFIX=/usr/local/ \
+                        && sudo make install) || warn "Neovim build failed."
+                fi
+                command rm -rf "$tmp"
+                echo 'export PATH="/usr/local/bin:$PATH"' | sudo tee /etc/profile.d/local-path.sh >/dev/null
+                sudo chmod 644 /etc/profile.d/local-path.sh
             fi
-            command rm -rf "$tmp"
-            echo 'export PATH="/usr/local/bin:$PATH"' | sudo tee /etc/profile.d/local-path.sh >/dev/null
-            sudo chmod 644 /etc/profile.d/local-path.sh
             ;;
         fedora)
-            pi neovim luarocks python3-pip python3-neovim nodejs
+            pi neovim luarocks python3-pip python3-neovim nodejs gcc
             sudo dnf copr enable -y atim/lazygit && pi lazygit
             sudo npm install -g neovim @mermaid-js/mermaid-cli 2>/dev/null || true
             ;;
         void|suse)
-            pi neovim nodejs ripgrep chafa python3-pip python3-neovim
+            pi neovim nodejs ripgrep chafa python3-pip python3-neovim gcc
             ;;
         alpine)
-            pi neovim nodejs ripgrep chafa py3-pip py3-pynvim
+            pi neovim nodejs ripgrep chafa py3-pip py3-pynvim build-base
             ;;
     esac
+    # nvim-treesitter compiles parsers: needs a C compiler (above) + tree-sitter-cli
+    _apps_tree_sitter_cli
     # pip only as a last resort: distro Pythons are externally managed (PEP 668)
     if [ "$DRY_RUN" -eq 0 ] && ! python3 -c 'import pynvim' 2>/dev/null; then
         python3 -m pip install --user --upgrade pynvim 2>/dev/null \
             || warn "pynvim not installed (no distro package, pip refused)."
     fi
+}
+
+# nvim-treesitter (main branch) needs tree-sitter-cli >= 0.26.1.
+# distro package where new enough -> pinned upstream binary (glibc) -> cargo
+TREE_SITTER_MIN="0.26.1"
+TREE_SITTER_VERSION="0.26.13"
+
+_tree_sitter_ok() {
+    local v
+    v=$(tree-sitter --version 2>/dev/null | awk '{ print $2 }')
+    [ -n "$v" ] && [ "$(printf '%s\n%s\n' "$TREE_SITTER_MIN" "$v" | sort -V | head -n 1)" = "$TREE_SITTER_MIN" ]
+}
+
+_tree_sitter_from_github() {
+    local arch want asset tmp bin rc=1
+    case "$(uname -m)" in
+        x86_64|amd64)  arch="x64";   want="c9c8bef027658d60249ca4fc0663578ceb2e2029346bb8702e091e20d7716475" ;;
+        aarch64|arm64) arch="arm64"; want="088c5ebf4b4b558c8abfd167c9c4f9669c2f9070da3edd9c0157dc051d77ac5d" ;;
+        *)             return 1 ;;
+    esac
+    [ "$LIBC" = "glibc" ] || return 1
+    command_exists curl || return 1
+    command_exists sha256sum || return 1
+
+    asset="tree-sitter-linux-${arch}.gz"
+    tmp=$(mktemp -d) || return 1
+    bin="$tmp/tree-sitter-linux-${arch}"
+    say "Fetching tree-sitter-cli v${TREE_SITTER_VERSION} (one binary)..."
+    if command curl -fsSL "https://github.com/tree-sitter/tree-sitter/releases/download/v${TREE_SITTER_VERSION}/${asset}" \
+        -o "$tmp/$asset"; then
+        if [ "$(sha256sum "$tmp/$asset" | awk '{ print $1 }')" != "$want" ]; then
+            warn "tree-sitter-cli checksum mismatch — not using the download."
+        # running it first catches a glibc too old for the upstream build
+        elif gunzip "$tmp/$asset" && chmod 0755 "$bin" && "$bin" --version >/dev/null 2>&1; then
+            sudo install -m 0755 "$bin" /usr/local/bin/tree-sitter && rc=0
+        fi
+    fi
+    command rm -rf "$tmp"
+    hash -r
+    return "$rc"
+}
+
+_apps_tree_sitter_cli() {
+    if [ "$DRY_RUN" -eq 1 ]; then dry "ensure tree-sitter-cli >= ${TREE_SITTER_MIN}"; return 0; fi
+    _tree_sitter_ok && return 0
+    say "Installing tree-sitter-cli (Neovim treesitter parsers)..."
+    # Debian/Ubuntu and Void stable ship versions older than the minimum;
+    # quiet so a missing/old package doesn't warn when a fallback succeeds
+    case "$DISTRO" in
+        arch|artix|fedora|alpine) pkg_install_quiet tree-sitter-cli || true ;;
+        suse)                     pkg_install_quiet tree-sitter || true ;;
+    esac
+    hash -r
+    _tree_sitter_ok && return 0
+    _tree_sitter_from_github && _tree_sitter_ok && return 0
+    command_exists cargo || _ensure_rust
+    cargo install --locked --version "$TREE_SITTER_VERSION" tree-sitter-cli \
+        || warn "tree-sitter-cli cargo build failed."
+    hash -r
+    _tree_sitter_ok || warn "tree-sitter-cli >= ${TREE_SITTER_MIN} not installed; Neovim treesitter parsers won't build."
 }
 
 _apps_editors() {
