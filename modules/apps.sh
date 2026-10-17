@@ -208,7 +208,10 @@ _apps_neovim() {
             pi neovim nodejs ripgrep chafa python3-pip python3-neovim gcc
             ;;
         alpine)
-            pi neovim nodejs ripgrep chafa py3-pip py3-pynvim build-base
+            pi nodejs ripgrep chafa py3-pip py3-pynvim build-base
+            # a plain `apk add neovim` would drop an existing edge pin (downgrade)
+            grep -qx 'neovim@edgecommunity' /etc/apk/world 2>/dev/null || pi neovim
+            _alpine_neovim_edge
             ;;
     esac
     # nvim-treesitter compiles parsers: needs a C compiler (above) + tree-sitter-cli
@@ -220,15 +223,43 @@ _apps_neovim() {
     fi
 }
 
+# _version_ge have want: true if version $1 >= $2
+_version_ge() {
+    [ -n "$1" ] && [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -n 1)" = "$2" ]
+}
+
+# The nvim dots need vim.pack (Neovim 0.12+). Alpine stable can lag behind
+# (3.23 ships 0.11), so take just Neovim from edge via a tagged repo:
+# packages only come from it when asked for as name@edgecommunity.
+NVIM_MIN="0.12.0"
+ALPINE_EDGE="https://dl-cdn.alpinelinux.org/alpine/edge"
+
+_alpine_edge_repos() {
+    grep -q '^@edgecommunity ' /etc/apk/repositories 2>/dev/null && return 0
+    say "Adding Alpine edge as tagged repos (@edge, @edgecommunity)..."
+    printf '@edge %s/main\n@edgecommunity %s/community\n' "$ALPINE_EDGE" "$ALPINE_EDGE" \
+        | sudo tee -a /etc/apk/repositories >/dev/null
+    sudo apk update -q
+}
+
+_alpine_neovim_edge() {
+    local v
+    if [ "$DRY_RUN" -eq 1 ]; then dry "neovim@edgecommunity if Alpine's neovim is older than ${NVIM_MIN}"; return 0; fi
+    v=$(nvim --version 2>/dev/null | awk 'NR == 1 { sub(/^v/, "", $2); print $2 }')
+    _version_ge "$v" "$NVIM_MIN" && return 0
+    say "Alpine's Neovim (${v:-missing}) is older than ${NVIM_MIN}; installing it from edge..."
+    _alpine_edge_repos && pi neovim@edgecommunity
+    hash -r
+}
+
 # nvim-treesitter (main branch) needs tree-sitter-cli >= 0.26.1.
-# distro package where new enough -> pinned upstream binary (glibc) -> cargo
+# distro package where new enough -> Alpine edge (musl) -> pinned upstream
+# binary (glibc) -> cargo
 TREE_SITTER_MIN="0.26.1"
 TREE_SITTER_VERSION="0.26.13"
 
 _tree_sitter_ok() {
-    local v
-    v=$(tree-sitter --version 2>/dev/null | awk '{ print $2 }')
-    [ -n "$v" ] && [ "$(printf '%s\n%s\n' "$TREE_SITTER_MIN" "$v" | sort -V | head -n 1)" = "$TREE_SITTER_MIN" ]
+    _version_ge "$(tree-sitter --version 2>/dev/null | awk '{ print $2 }')" "$TREE_SITTER_MIN"
 }
 
 _tree_sitter_from_github() {
@@ -272,6 +303,11 @@ _apps_tree_sitter_cli() {
     esac
     hash -r
     _tree_sitter_ok && return 0
+    if [ "$DISTRO" = "alpine" ]; then
+        _alpine_edge_repos && pkg_install_quiet tree-sitter-cli@edgecommunity
+        hash -r
+        _tree_sitter_ok && return 0
+    fi
     _tree_sitter_from_github && _tree_sitter_ok && return 0
     command_exists cargo || _ensure_rust
     cargo install --locked --version "$TREE_SITTER_VERSION" tree-sitter-cli \
