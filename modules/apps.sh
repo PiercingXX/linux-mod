@@ -317,66 +317,16 @@ _apps_tree_sitter_cli() {
 }
 
 _apps_editors() {
-    say "Installing VSCode & opencode..."
+    say "Installing opencode..."
     case "$DISTRO" in
         arch|artix)
-            aur visual-studio-code-bin opencode-desktop-bin
-            [ "$DISTRO" = "arch" ] && aur code-nautilus-git
+            aur opencode-desktop-bin
             ;;
-        debian)
-            # MS repo instead of the old hardcoded .deb
-            if [ "$DRY_RUN" -eq 1 ]; then
-                dry "add Microsoft VSCode apt repo + install code"
-            elif ! command_exists code; then
-                wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor \
-                    | sudo tee /usr/share/keyrings/ms-vscode.gpg >/dev/null
-                echo "deb [arch=amd64 signed-by=/usr/share/keyrings/ms-vscode.gpg] https://packages.microsoft.com/repos/code stable main" \
-                    | sudo tee /etc/apt/sources.list.d/vscode.list >/dev/null
-                sudo apt update && pi code
-            fi
+        debian|fedora|suse)
             run_remote_installer "opencode" https://opencode.ai/install bash
             ;;
-        fedora)
-            if ! command_exists code; then
-                sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
-                sudo tee /etc/yum.repos.d/vscode.repo >/dev/null <<'EOF'
-[code]
-name=Visual Studio Code
-baseurl=https://packages.microsoft.com/yumrepos/vscode
-enabled=1
-gpgcheck=1
-gpgkey=https://packages.microsoft.com/keys/microsoft.asc
-EOF
-                pi code
-            fi
-            ;;
-        void)
-            # Native VSCode tarball into ~/.local/opt (from void-mod); it's a
-            # glibc build, so void-musl gets the flatpak like Alpine
-            if [ "$LIBC" = "musl" ]; then
-                fp com.visualstudio.code
-            elif [ "$DRY_RUN" -eq 0 ] && [ ! -x "$HOME/.local/opt/vscode/bin/code" ]; then
-                local tmp; tmp=$(mktemp -d)
-                if wget -qO "$tmp/vscode.tar.gz" "https://update.code.visualstudio.com/latest/linux-x64/stable"; then
-                    mkdir -p "$HOME/.local/opt/vscode" "$HOME/.local/bin"
-                    tar -xzf "$tmp/vscode.tar.gz" -C "$HOME/.local/opt/vscode" --strip-components=1
-                    ln -sf "$HOME/.local/opt/vscode/bin/code" "$HOME/.local/bin/code"
-                fi
-                command rm -rf "$tmp"
-            fi
+        void|alpine)
             fp ai.opencode.opencode
-            ;;
-        suse)
-            if ! command_exists code; then
-                sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
-                sudo zypper -n addrepo -f https://packages.microsoft.com/yumrepos/vscode vscode 2>/dev/null || true
-                pi code
-            fi
-            run_remote_installer "opencode" https://opencode.ai/install bash
-            ;;
-        alpine)
-            # glibc binaries don't run on musl - use the flatpaks
-            fp com.visualstudio.code ai.opencode.opencode
             ;;
     esac
 }
@@ -386,7 +336,7 @@ _apps_networking() {
     case "$DISTRO" in
         arch|artix)
             pi tailscale || aur tailscale
-            aur synology-drive synochat
+            aur synology-drive
             ;;
         debian)
             run_remote_installer "tailscale" https://tailscale.com/install.sh

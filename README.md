@@ -21,7 +21,7 @@ modules/
 ├── gnome-extensions.sh       pop-shell, blur-my-shell, appindicator, gsconnect,
 │                             just-perfection, workspaces, super-key
 ├── apps.sh                   unified apps: flatpak core, yazi+plugins, neovim,
-│                             vscode/opencode, tailscale/synology, docker...
+│                             opencode, tailscale/synology, docker...
 ├── dots.sh                   piercing-dots rice + .bashrc + first-login polish
 ├── wm.sh                     Hyprland, Sway, i3, bspwm, Awesome, Qtile, DWM,
 │                             herbstluftwm, GNOME, BusyBox — per-distro branches
