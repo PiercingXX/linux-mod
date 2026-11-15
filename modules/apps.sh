@@ -71,7 +71,7 @@ _apps_common_native() {
     case "$DISTRO" in
         arch|artix)
             pi kitty python vlc
-            aur ulauncher || _apps_ulauncher_aur_webkit_fix
+            _apps_ulauncher_v6_aur || aur ulauncher || _apps_ulauncher_aur_webkit_fix
             aur proton-vpn-gtk-app ventoy-bin
             [ "$DISTRO" = "arch" ] && { pi github-cli; aur nautilus-open-any-terminal nautilus-renamer; }
             [ "$DISTRO" = "artix" ] && pi rofi
@@ -99,6 +99,39 @@ _apps_common_native() {
             fp com.protonvpn.www
             ;;
     esac
+}
+
+# arch: Ulauncher v6 (native Wayland). The AUR only has v5 (ulauncher) or whatever is on
+# upstream main (ulauncher-git), so build ulauncher-git pinned to a v6 release tag.
+ULAUNCHER_V6_TAG="${ULAUNCHER_V6_TAG:-v6.0.0-beta35}"
+_apps_ulauncher_v6_aur() {
+    if [ "$DRY_RUN" -eq 1 ]; then dry "build ulauncher $ULAUNCHER_V6_TAG from AUR ulauncher-git + enable its user service"; return 0; fi
+    local want tmp pkgs rc=1
+    want=$(printf '%s' "${ULAUNCHER_V6_TAG#v}" | tr '-' '.')
+    if pacman -Q ulauncher-git 2>/dev/null | grep -q " $want-"; then
+        rc=0
+    else
+        tmp=$(mktemp -d)
+        if git clone --depth 1 https://aur.archlinux.org/ulauncher-git.git "$tmp/ulauncher-git" \
+            && (cd "$tmp/ulauncher-git" \
+                && sed -i "s|Ulauncher/Ulauncher.git\")|Ulauncher/Ulauncher.git#tag=$ULAUNCHER_V6_TAG\")|" PKGBUILD \
+                && grep -q "#tag=$ULAUNCHER_V6_TAG" PKGBUILD \
+                && makepkg -s --noconfirm) \
+            && pkgs=$(cd "$tmp/ulauncher-git" && makepkg --packagelist) && [ -n "$pkgs" ]; then
+            # ulauncher-git conflicts with v5, so only swap it out once v6 has built
+            if pacman -Q ulauncher >/dev/null 2>&1; then sudo pacman -Rdd --noconfirm ulauncher; fi
+            # shellcheck disable=SC2086 # one path per line from --packagelist
+            sudo pacman -U --noconfirm $pkgs && rc=0
+        fi
+        command rm -rf "$tmp"
+    fi
+    if [ "$rc" -ne 0 ]; then warn "ulauncher v6 build failed; falling back to v5."; return 1; fi
+    # v6 quits after each use unless its user service is enabled (Artix has no systemd and keeps it alive anyway)
+    if command_exists systemctl; then
+        systemctl --user enable ulauncher 2>/dev/null \
+            || warn "Could not enable ulauncher.service; run: systemctl --user enable --now ulauncher"
+    fi
+    return 0
 }
 
 # arch: ulauncher AUR PKGBUILD wants old webkit2gtk; patch to 4.1 (from arch-mini-mod)
